@@ -2640,7 +2640,7 @@ var qrcode = function() {
 const FPS_LIST = [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60, 100, 120];
 const SHUTTER_LIST = [25, 30, 48, 50, 60, 96, 100, 120, 125, 180, 200, 250, 500, 1000];
 const ISO_LIST = [100,200,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400,8000,10000,12800,16000,25600];
-const APERTURE_LIST = [1.0,1.2,1.4,1.8,2,2.8,4,5.6,8,11,16,22,32];
+const APERTURE_LIST = [1.0,1.1,1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5.0,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32];
 const WB_LIST = [2700,3000,3200,3800,4300,5000,5600,6500,7500];
 
 /* ---- estado persistente ---- */
@@ -2649,7 +2649,7 @@ const DEFAULT_STATE = {
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
   fps:25, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
-  tail:false, tomaBuena:false,
+  tail:false, tomaBuena:false, pendingAdvance:false,
   pendingGood:'',
   view:'edit', sub:'qr', lang:'es',
   lastPayload:null,
@@ -2969,7 +2969,24 @@ function publicar(){
   const goodToUse = state.pendingGood || '';
   const payload = buildPayload(goodToUse);
 
-  // log de sesion (siempre, independientemente de "toma buena")
+  state.lastPayload = payload;
+  saveState();
+
+  renderDataView(payload);
+  switchScreen('display');
+  setSub('qr');
+}
+document.getElementById('btn-publicar').addEventListener('click', publicar);
+
+/* ---- confirmar rodaje: se llama cuando la cuenta atras llega al flash.
+   Este es el momento real de "se ha grabado esta toma": se registra en
+   el log de sesion y se fija el "good" para el siguiente QR si procede.
+   El avance de Toma NO se aplica aqui (para soportar repetir la cuenta
+   atras varias veces sobre la misma toma, p.ej. "segundo chac"); queda
+   marcado como pendiente y se aplica una sola vez al volver a Editar. ---- */
+function confirmRoll(){
+  const goodToUse = state.pendingGood || '';
+
   state.log.push({
     ts: new Date().toISOString(),
     sc: state.sc, sh: state.sh, tk: state.tk,
@@ -2978,25 +2995,25 @@ function publicar(){
     tail: state.tail, toma_buena: state.tomaBuena, good_enviado: goodToUse
   });
 
-  // el "good" viaja una sola vez, en el siguiente QR publicado
   state.pendingGood = state.tomaBuena ? `${state.sc}-${state.sh}-${state.tk}` : '';
+  state.pendingAdvance = true;
 
-  // flags por-toma se reinician; la toma se autoincrementa para la siguiente
-  state.tomaBuena = false;
-  state.tail = false;
-  state.tk += 1;
-
-  state.lastPayload = payload;
   saveState();
-  renderEdit();
-
-  renderDataView(payload);
-  switchScreen('display');
-  setSub('qr');
 }
-document.getElementById('btn-publicar').addEventListener('click', publicar);
+window.confirmRoll = confirmRoll;
 
+/* ---- al volver a Editar: si hay un avance pendiente (se confirmo al
+   menos un rodaje de la toma actual), se aplica una sola vez. Si se
+   repitio la cuenta atras varias veces sin volver a Editar entremedias,
+   solo cuenta como un avance. ---- */
 document.getElementById('btn-edit-icon').addEventListener('click', ()=>{
+  if(state.pendingAdvance){
+    state.tomaBuena = false;
+    state.tail = false;
+    state.tk += 1;
+    state.pendingAdvance = false;
+    saveState();
+  }
   switchScreen('edit');
   renderEdit();
 });
@@ -3080,10 +3097,11 @@ function runCountdown(){
       }
       requestAnimationFrame(tick);
     } else {
-      // exactamente a los 3 segundos: flash
+      // exactamente a los 3 segundos: flash + confirmacion de rodaje
       cdOverlay.classList.remove('show');
       flashOverlay.classList.add('show');
       playClap();
+      confirmRoll();
       setTimeout(function(){ flashOverlay.classList.remove('show'); }, 1000);
     }
   }
