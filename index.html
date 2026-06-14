@@ -145,8 +145,7 @@
   .overlay.show{ opacity:1; }
   #countdown-overlay{ background:var(--bg); }
   #countdown-overlay span{ font-family:var(--mono); font-weight:700; font-size:42vh; color:var(--fg); }
-  #flash-overlay{ background:#ff1a1a; align-items:center; justify-content:center; }
-  #flash-qr-canvas{ width:min(70vw,70vh); height:min(70vw,70vh); background:#ffffff; border-radius:4px; }
+  #flash-overlay{ background:#ff1a1a; }
 
   /* ---- toast export ---- */
   #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px);
@@ -331,7 +330,7 @@
   <button id="btn-edit-icon" class="icon-btn edit-icon">&#9998;</button>
 
   <div id="countdown-overlay" class="overlay"><span id="countdown-number">3</span></div>
-  <div id="flash-overlay" class="overlay"><canvas id="flash-qr-canvas"></canvas></div>
+  <div id="flash-overlay" class="overlay"></div>
 </div>
 
 <div id="toast"></div>
@@ -2661,7 +2660,7 @@ const DEFAULT_STATE = {
   tomaBuena:false, pendingAdvance:false,
   pendingGood:'', lastTakeNumber:null,
   view:'edit', sub:'qr', lang:'es',
-  lastPayload:null,
+  lastPayload:null, lastClapPayload:null,
   log:[]
 };
 
@@ -2890,7 +2889,7 @@ function setSub(sub){
   document.getElementById('view-qr').classList.toggle('active', sub === 'qr');
   document.getElementById('view-data').classList.toggle('active', sub === 'data');
   saveState();
-  if(sub === 'qr' && state.lastPayload) drawQR(state.lastPayload);
+  if(sub === 'qr' && state.lastClapPayload) drawQR(state.lastClapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
 }
 
 /* ---- dibujo del QR. Por defecto: claro sobre fondo oscuro en #qr-canvas
@@ -2948,15 +2947,6 @@ function buildFlashPayload(){
   };
 }
 
-/* ---- dibuja el QR de claqueta sobre fondo blanco (alto contraste para
-   deteccion con zbar/pyzbar), dentro del flash-overlay. ---- */
-function drawFlashQR(){
-  const canvas = document.getElementById('flash-qr-canvas');
-  const payload = buildFlashPayload();
-  drawQR(payload, canvas, '#ffffff', '#000000');
-  return payload;
-}
-
 /* ---- vista de datos ---- */
 function makeBadge(label, value){
   const span = document.createElement('span');
@@ -2996,7 +2986,7 @@ function publicar(){
 
   renderDataView(payload);
   switchScreen('display');
-  setSub('qr');
+  setSub('data');
 }
 document.getElementById('btn-publicar').addEventListener('click', publicar);
 
@@ -3087,7 +3077,11 @@ displayEl.addEventListener('touchend', (e)=>{
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
     if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){
-      setSub(state.sub === 'qr' ? 'data' : 'qr');
+      if(state.sub === 'qr'){
+        setSub('data');
+      } else if(state.lastClapPayload){
+        setSub('qr');
+      }
     }
   }
   swipeCandidate = false;
@@ -3120,13 +3114,21 @@ function runCountdown(){
       }
       requestAnimationFrame(tick);
     } else {
-      // exactamente a los 3 segundos: flash + QR de claqueta + confirmacion de rodaje
+      // exactamente a los 3 segundos: flash rojo a pantalla completa,
+      // confirmacion de rodaje (genera el payload con TC del dispositivo).
+      // El QR se muestra DESPUES, al desaparecer el flash.
       cdOverlay.classList.remove('show');
-      const clapPayload = drawFlashQR();
+      const clapPayload = buildFlashPayload();
       flashOverlay.classList.add('show');
       playClap();
       confirmRoll(clapPayload);
-      setTimeout(function(){ flashOverlay.classList.remove('show'); }, 1000);
+      setTimeout(function(){
+        flashOverlay.classList.remove('show');
+        state.lastClapPayload = clapPayload;
+        saveState();
+        drawQR(clapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
+        setSub('qr');
+      }, 1000);
     }
   }
 
@@ -3219,12 +3221,14 @@ function init(){
   renderEdit();
   if(state.lastPayload) renderDataView(state.lastPayload);
   switchScreen(state.view || 'edit');
-  setSub(state.sub || 'qr');
+  let sub = state.sub || 'data';
+  if(sub === 'qr' && !state.lastClapPayload) sub = 'data';
+  setSub(sub);
 }
 init();
 
 window.addEventListener('resize', ()=>{
-  if(state.view === 'display' && state.sub === 'qr' && state.lastPayload) drawQR(state.lastPayload);
+  if(state.view === 'display' && state.sub === 'qr' && state.lastClapPayload) drawQR(state.lastClapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
 });
 </script>
 </body>
