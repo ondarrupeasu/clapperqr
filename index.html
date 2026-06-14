@@ -2727,15 +2727,15 @@ const I18N = {
   },
   eu: {
     title:'KLAKETA DIGITALA',
-    escena:'Eszena', plano:'Planoa', toma:'Hartualdia',
+    escena:'Eszena', plano:'Planoa', toma:'Toma',
     dia:'EGUNA', noche:'GAUA',
     ajustes:'Ezarpen teknikoak',
     lente:'Lentea (mm)', obturador:'Obturadorea 1/x', diafragma:'Diafragma f/', wb:'Zuri balantzea (K)',
     camara:'Kamera', tarjeta:'Txartela',
-    good:'Hartualdi ona', good_prev:'{n}. hartualdia ona izan da?', publicar:'ARGITARATU',
+    good:'Toma ona', good_prev:'{n}. toma ona izan da?', publicar:'ARGITARATU',
     b_cam:'KAM', b_esc:'KOK', b_fps:'FPS', b_lente:'LENTE', b_obt:'OBT', b_iso:'ISO',
     b_diaf:'DIAF', b_wb:'ZB',
-    toast_no_log:'Oraindik ez dago hartualdirik erregistratuta',
+    toast_no_log:'Oraindik ez dago tomarik erregistratuta',
   },
 };
 function t(key){
@@ -2857,13 +2857,6 @@ document.querySelector('.wb-input').addEventListener('change', (e)=>{
 document.querySelectorAll('.collapsible').forEach(h=>{
   h.addEventListener('click', ()=>{
     document.getElementById(h.dataset.toggle).classList.toggle('collapsed');
-  });
-});
-
-['pr','dir','dp','cam','card'].forEach(f=>{
-  document.getElementById('f-'+f).addEventListener('input', (e)=>{
-    state[f] = e.target.value;
-    saveState();
   });
 });
 
