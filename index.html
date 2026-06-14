@@ -2947,6 +2947,30 @@ function buildFlashPayload(){
   };
 }
 
+/* ---- secuencia de QR tras el clap: mismo payload (mismo timestamp),
+   fondo con luminancia decreciente en pasos de 1s. Da margen para que
+   al menos un paso coincida con la exposicion de la camara. Al terminar,
+   vuelve a la vista de datos automaticamente. ---- */
+const QR_FADE_BACKGROUNDS = ['#ffffff','#cccccc','#999999','#666666','#333333','#0d0d0d'];
+
+function runQrFadeSequence(payload){
+  const canvas = document.getElementById('qr-canvas');
+  let i = 0;
+  function step(){
+    if(state.view !== 'display'){
+      return;
+    }
+    if(i >= QR_FADE_BACKGROUNDS.length){
+      setSub('data');
+      return;
+    }
+    drawQR(payload, canvas, QR_FADE_BACKGROUNDS[i], '#000000');
+    i += 1;
+    setTimeout(step, 1000);
+  }
+  step();
+}
+
 /* ---- vista de datos ---- */
 function makeBadge(label, value){
   const span = document.createElement('span');
@@ -3126,8 +3150,8 @@ function runCountdown(){
         flashOverlay.classList.remove('show');
         state.lastClapPayload = clapPayload;
         saveState();
-        drawQR(clapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
         setSub('qr');
+        runQrFadeSequence(clapPayload);
       }, 1000);
     }
   }
