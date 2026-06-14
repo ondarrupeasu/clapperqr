@@ -55,7 +55,7 @@
     padding:8px 6px; text-align:center; }
   .seg-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; margin-bottom:6px; }
   .cam-segmented{ height:38px; margin-top:2px; }
-  .cam-segmented button{ font-weight:700; font-size:18px; padding:0; }
+  .cam-segmented button{ font-weight:700; font-size:20px; padding:0; color:var(--fg); }
   .sst-edit{ background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
     padding:8px 6px; text-align:center; }
   .sst-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
@@ -193,6 +193,20 @@
       </div>
     </div>
 
+    <!-- INT/EXT, DIA/NOCHE -->
+    <div class="card">
+      <div class="seg-group">
+        <div class="segmented" data-field="int">
+          <button data-value="INT">INT</button>
+          <button data-value="EXT">EXT</button>
+        </div>
+        <div class="segmented" data-field="dn">
+          <button data-value="DIA" data-i18n="dia">DÍA</button>
+          <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Escena / Plano / Toma -->
     <div class="card">
       <div class="sst-edit-grid">
@@ -219,20 +233,6 @@
             <button class="step-btn" data-dir="-1">&minus;</button>
             <button class="step-btn" data-dir="1">+</button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- INT/EXT, DIA/NOCHE -->
-    <div class="card">
-      <div class="seg-group">
-        <div class="segmented" data-field="int">
-          <button data-value="INT">INT</button>
-          <button data-value="EXT">EXT</button>
-        </div>
-        <div class="segmented" data-field="dn">
-          <button data-value="DIA" data-i18n="dia">DÍA</button>
-          <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
         </div>
       </div>
     </div>
