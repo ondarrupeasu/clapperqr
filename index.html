@@ -133,16 +133,26 @@
 
   .badges-bottom{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; padding-top:10px; }
 
-  /* portrait: SC y PL arriba lado a lado, TK abajo ancho completo */
+  /* portrait: SC y PL arriba lado a lado, TK abajo ancho completo. Badges tecnicos arriba en dos filas. */
   @media (orientation: portrait){
+    .badges-top{ padding-right:46px; }
     .sst-grid{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
     .sst-sc{ grid-column:1; grid-row:1; }
     .sst-sh{ grid-column:2; grid-row:1; }
     .sst-tk{ grid-column:1 / span 2; grid-row:2; }
+    .sst-box .l{ font-size:clamp(13px,3.2vw,18px); }
+    .sst-box .v{ font-size:clamp(48px,18vh,28vw); }
   }
-  /* landscape: SC, PL, TK tres cajas iguales en fila */
+  /* landscape: SC, PL, TK tres cajas iguales en fila, mas grandes.
+     Badges tecnicos pasan abajo en una sola linea, badges-top queda vacio. */
   @media (orientation: landscape){
+    .badges-top{ display:none; }
     .sst-grid{ grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr; }
+    .sst-box .l{ font-size:clamp(14px,2.6vh,20px); }
+    .sst-box .v{ font-size:clamp(48px,22vh,18vw); }
+    .badges-bottom{ flex-wrap:nowrap; justify-content:space-between; padding-top:6px; }
+    .badges-bottom .badge{ font-size:clamp(10px,1.6vh,13px); flex:1; text-align:center; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis; }
   }
 
   .edit-icon{ position:absolute; top: calc(env(safe-area-inset-top) + 12px); right: calc(env(safe-area-inset-right) + 12px);
@@ -3054,9 +3064,7 @@ function renderDataView(payload){
   document.getElementById('d-sh').textContent = payload.sh;
   document.getElementById('d-tk').textContent = payload.tk;
 
-  const top = document.getElementById('badges-top');
-  top.innerHTML = '';
-  [
+  const badges = [
     [t('b_cam'), `${payload.cam || '–'}·${formatCard(payload.card)}`],
     [t('b_esc'), `${payload.int}·${payload.dn}`],
     [t('b_fps'), formatFps(payload.fps)],
@@ -3065,10 +3073,15 @@ function renderDataView(payload){
     [t('b_iso'), payload.iso],
     [t('b_diaf'), `f/${formatAp(payload.ap)}`],
     [t('b_wb'), `${payload.wb}K`],
-  ].forEach(([l,v]) => top.appendChild(makeBadge(l,v)));
+  ];
 
-  const bottom = document.getElementById('badges-bottom');
-  bottom.innerHTML = '';
+  const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+  const target = document.getElementById(isLandscape ? 'badges-bottom' : 'badges-top');
+  const other = document.getElementById(isLandscape ? 'badges-top' : 'badges-bottom');
+
+  target.innerHTML = '';
+  badges.forEach(([l,v]) => target.appendChild(makeBadge(l,v)));
+  other.innerHTML = '';
 }
 
 /* ---- publicar ---- */
@@ -3383,6 +3396,7 @@ setInterval(()=>{
 
 window.addEventListener('resize', ()=>{
   if(state.view === 'display' && state.sub === 'qr' && state.lastClapPayload) drawQR(state.lastClapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
+  if(state.view === 'display' && state.sub === 'data' && state.lastPayload) renderDataView(state.lastPayload);
 });
 </script>
 </body>
