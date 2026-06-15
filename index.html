@@ -2732,7 +2732,8 @@ function formatNowTime(){
   const now = new Date();
   const hh = String(now.getHours()).padStart(2,'0');
   const mm = String(now.getMinutes()).padStart(2,'0');
-  return `${hh}:${mm}`;
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
 }
 
 function clampList(list, current, dir){
@@ -3376,7 +3377,7 @@ init();
 setInterval(()=>{
   const el = document.getElementById('session-time');
   if(el) el.textContent = formatNowTime();
-}, 30000);
+}, 1000);
 
 
 window.addEventListener('resize', ()=>{
