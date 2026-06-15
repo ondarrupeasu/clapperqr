@@ -44,6 +44,7 @@
   .session-card h2{ margin:0; }
   .session-info{ display:flex; flex-direction:column; gap:2px; }
   .session-date{ font-family:var(--mono); font-size:14px; font-weight:700; color:var(--fg); letter-spacing:.05em; }
+  .session-time{ font-weight:400; color:var(--fg-dim); }
   .session-stats{ font-family:var(--mono); font-size:11px; color:var(--fg-dim); letter-spacing:.05em; }
   .session-actions{ display:flex; gap:8px; }
 
@@ -178,7 +179,7 @@
 
     <div class="card session-card">
       <div class="session-info">
-        <div class="session-date" id="session-date"></div>
+        <div class="session-date"><span id="session-date"></span> <span class="session-time" id="session-time"></span></div>
         <div class="session-stats" id="session-stats"></div>
       </div>
       <div class="session-actions">
@@ -2727,6 +2728,13 @@ function formatSessionDate(isoDate, lang){
   return `${d}/${m}/${y}`;
 }
 
+function formatNowTime(){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  return `${hh}:${mm}`;
+}
+
 function clampList(list, current, dir){
   let idx = list.indexOf(current);
   if(idx === -1){
@@ -2828,6 +2836,7 @@ function renderWB(){
 function renderSessionHeader(){
   document.getElementById('session-date').textContent =
     formatSessionDate(state.sessionDate, state.lang);
+  document.getElementById('session-time').textContent = formatNowTime();
 
   const n = state.sessionTakeCount || 0;
   const ultima = state.lastGoodTake || t('sin_tomas_buenas');
@@ -3363,6 +3372,12 @@ function init(){
   setSub(sub);
 }
 init();
+
+setInterval(()=>{
+  const el = document.getElementById('session-time');
+  if(el) el.textContent = formatNowTime();
+}, 30000);
+
 
 window.addEventListener('resize', ()=>{
   if(state.view === 'display' && state.sub === 'qr' && state.lastClapPayload) drawQR(state.lastClapPayload, document.getElementById('qr-canvas'), '#ffffff', '#000000');
