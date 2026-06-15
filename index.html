@@ -3105,6 +3105,7 @@ function confirmRoll(clapPayload){
 }
 window.confirmRoll = confirmRoll;
 
+
 /* ---- al volver a Editar: si hay un avance pendiente (se confirmo al
    menos un rodaje de la toma actual), se aplica una sola vez. Si se
    repitio la cuenta atras varias veces sin volver a Editar entremedias,
@@ -3277,7 +3278,21 @@ function playClap(){
 function buildCSV(){
   const cols = ['ts','clap_ts','sc','sh','tk','cam','card','int','dn','toma_buena','good_enviado'];
   const lines = [cols.join(',')];
-  state.log.forEach(row=>{
+  const rows = state.log.slice();
+
+  if(state.lastTakeNumber && state.tomaBuena){
+    rows.push({
+      ts: new Date().toISOString(),
+      clap_ts: '',
+      sc: state.sc, sh: state.sh, tk: state.lastTakeNumber,
+      cam: state.cam, card: state.card,
+      int: state.int, dn: state.dn,
+      toma_buena: true,
+      good_enviado: `${state.sc}-${state.sh}-${state.lastTakeNumber}`
+    });
+  }
+
+  rows.forEach(row=>{
     lines.push(cols.map(c=>{
       let v = row[c];
       if(typeof v === 'boolean') v = v ? 'Si' : 'No';
@@ -3297,7 +3312,8 @@ function showToast(msg){
 }
 
 async function exportLog(){
-  if(state.log.length === 0){
+  const hayMarcaPendiente = state.lastTakeNumber && state.tomaBuena;
+  if(state.log.length === 0 && !hayMarcaPendiente){
     showToast(t('toast_no_log'));
     return;
   }
