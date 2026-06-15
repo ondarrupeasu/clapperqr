@@ -68,6 +68,13 @@
   .sst-edit{ background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
     padding:8px 6px; text-align:center; }
   .sst-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
+  .prod-field{ margin-bottom:10px; }
+  .prod-field:last-child{ margin-bottom:0; }
+  .prod-field .lbl{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+    color:var(--fg-dim); text-transform:uppercase; margin-bottom:6px; }
+  .prod-field input{ width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; box-sizing:border-box; }
+  .prod-field input:focus{ outline:none; border-color:var(--accent); }
   .sst-edit .val{ font-family:var(--mono); font-size:30px; font-weight:700; margin:4px 0; line-height:1; }
   .sst-edit .row{ display:flex; align-items:center; justify-content:center; gap:6px; }
   .step-btn{ background:var(--bg-input); border:1px solid var(--border); color:var(--fg);
@@ -213,6 +220,25 @@
             <path d="M14 11v6"/>
           </svg>
         </button>
+      </div>
+    </div>
+
+    <!-- Datos de produccion: solo viajan al CSV de sesion, nunca al QR -->
+    <div class="card collapsed" id="card-produccion">
+      <h2 class="collapsible" data-toggle="card-produccion"><span data-i18n="datos_produccion">Datos de producción</span><span class="chev">▾</span></h2>
+      <div class="card-body">
+        <div class="prod-field">
+          <label class="lbl" data-i18n="produccion">Producción</label>
+          <input type="text" id="f-pr" autocomplete="off">
+        </div>
+        <div class="prod-field">
+          <label class="lbl" data-i18n="director">Director/a</label>
+          <input type="text" id="f-dir" autocomplete="off">
+        </div>
+        <div class="prod-field">
+          <label class="lbl" data-i18n="dp">Dir. de fotografía</label>
+          <input type="text" id="f-dp" autocomplete="off">
+        </div>
       </div>
     </div>
 
@@ -2706,6 +2732,7 @@ const DEFAULT_STATE = {
   tomaBuena:false, pendingAdvance:false,
   pendingGood:'', lastTakeNumber:null,
   sessionDate:null, sessionTakeCount:0, lastGoodTake:'',
+  pr:'', dir:'', dp:'',
   view:'edit', sub:'qr', lang:'es',
   lastPayload:null, lastClapPayload:null,
   log:[]
@@ -2791,6 +2818,8 @@ const I18N = {
     b_diaf:'DIAF', b_wb:'WB',
     toast_no_log:'No hay tomas registradas todavía',
     reset_confirm:'¿Reiniciar la sesión? Se perderá el registro de todas las tomas.',
+    produccion:'Producción', director:'Director/a', dp:'Dir. de fotografía',
+    datos_produccion:'Datos de producción',
   },
   en: {
     title:'DIGITAL SLATE',
@@ -2805,6 +2834,8 @@ const I18N = {
     b_diaf:'APER', b_wb:'WB',
     toast_no_log:'No takes recorded yet',
     reset_confirm:'Reset the session? All recorded takes will be lost.',
+    produccion:'Production', director:'Director', dp:'Cinematographer',
+    datos_produccion:'Production info',
   },
   eu: {
     title:'KLAKETA DIGITALA',
@@ -2819,6 +2850,8 @@ const I18N = {
     b_diaf:'DIAF', b_wb:'ZB',
     toast_no_log:'Oraindik ez dago tomarik erregistratuta',
     reset_confirm:'Saioa berrabiarazi? Erregistratutako toma guztiak galduko dira.',
+    produccion:'Ekoizpena', director:'Zuzendaria', dp:'Argazki zuzendaria',
+    datos_produccion:'Ekoizpenaren datuak',
   },
 };
 function t(key){
@@ -2892,6 +2925,10 @@ function renderEdit(){
 
   document.getElementById('f-good').checked = state.tomaBuena;
 
+  document.getElementById('f-pr').value = state.pr || '';
+  document.getElementById('f-dir').value = state.dir || '';
+  document.getElementById('f-dp').value = state.dp || '';
+
   const goodLabel = document.getElementById('f-good-label');
   if(state.lastTakeNumber){
     goodLabel.textContent = t('good_prev').replace('{n}', state.lastTakeNumber);
@@ -2956,6 +2993,13 @@ document.querySelectorAll('.collapsible').forEach(h=>{
 });
 
 document.getElementById('f-good').addEventListener('change', e=>{ state.tomaBuena = e.target.checked; saveState(); });
+
+['pr','dir','dp'].forEach(field=>{
+  document.getElementById(`f-${field}`).addEventListener('input', e=>{
+    state[field] = e.target.value;
+    saveState();
+  });
+});
 
 /* ---- generacion del payload del QR ---- */
 function buildPayload(goodVal){
@@ -3312,7 +3356,23 @@ function playClap(){
 /* ---- exportar log de sesion (CSV via Web Share API, con fallback de descarga) ---- */
 function buildCSV(){
   const cols = ['ts','clap_ts','sc','sh','tk','cam','card','int','dn','toma_buena','good_enviado'];
-  const lines = [cols.join(',')];
+  const lines = [];
+
+  const meta = [
+    ['produccion', state.pr || ''],
+    ['director', state.dir || ''],
+    ['dp', state.dp || ''],
+    ['fecha_sesion', state.sessionDate || ''],
+  ];
+  const escapeCsv = (v)=>{
+    v = (v === null || v === undefined) ? '' : String(v);
+    if(v.includes(',') || v.includes('"')) v = '"' + v.replace(/"/g,'""') + '"';
+    return v;
+  };
+  meta.forEach(([k,v])=> lines.push(`${k},${escapeCsv(v)}`));
+  lines.push('');
+
+  lines.push(cols.join(','));
   const rows = state.log.slice();
 
   if(state.lastTakeNumber && state.tomaBuena){
@@ -3331,9 +3391,7 @@ function buildCSV(){
     lines.push(cols.map(c=>{
       let v = row[c];
       if(typeof v === 'boolean') v = v ? 'Si' : 'No';
-      v = (v === null || v === undefined) ? '' : String(v);
-      if(v.includes(',') || v.includes('"')) v = '"' + v.replace(/"/g,'""') + '"';
-      return v;
+      return escapeCsv(v);
     }).join(','));
   });
   return lines.join('\r\n');
