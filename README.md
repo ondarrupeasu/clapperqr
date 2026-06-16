@@ -1,2 +1,2 @@
-# ClapTab
-ClapTab — Claqueta digital con QR para rodajes (PWA)
+# ClapTag
+ClapTag — Claqueta digital con QR para rodajes (PWA)
