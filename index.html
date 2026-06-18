@@ -111,11 +111,9 @@
   .check-row input{ width:20px; height:20px; accent-color:var(--accent); }
   .check-row.good input{ accent-color:var(--accent-good); }
   /* ---- botones toma buena / mala ---- */
-  .take-tag-row{ display:flex; align-items:center; gap:8px; padding:8px 2px; }
-  .take-tag-row .tag-lbl{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--fg-dim); text-transform:uppercase; }
-  .segmented.good-seg{ flex:none; }
-  .segmented[data-field="good"] button[data-value="buena"].active{ background:var(--accent-good); color:#0a0a0a; font-weight:700; }
-  .segmented[data-field="good"] button[data-value="mala"].active{ background:var(--accent-bad); color:#0a0a0a; font-weight:700; }
+  .take-tag-row{ display:none; }
+  .segmented[data-field="goodTag"] button[data-value="buena"].active{ background:var(--accent-good); color:#0a0a0a; font-weight:700; }
+  .segmented[data-field="goodTag"] button[data-value="mala"].active{ background:var(--accent-bad); color:#0a0a0a; font-weight:700; }
 
   /* ---- boton publicar ---- */
   .btn-publicar{ position:fixed; left:0; right:0; bottom:0; padding:14px 16px calc(14px + env(safe-area-inset-bottom));
@@ -293,35 +291,6 @@
     </div>
 
     <!-- Escena / Plano / Toma -->
-    <div class="card">
-      <div class="sst-edit-grid">
-        <div class="sst-edit" data-field="sc">
-          <div class="lbl" data-i18n="escena">Escena</div>
-          <div class="val" data-val>1</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="sst-edit" data-field="sh">
-          <div class="lbl" data-i18n="plano">Plano</div>
-          <div class="val" data-val>1</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="sst-edit" data-field="tk">
-          <div class="lbl" data-i18n="toma">Toma</div>
-          <div class="val" data-val>1</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Ajustes tecnicos -->
     <div class="card">
       <h2 data-i18n="ajustes">Ajustes técnicos</h2>
@@ -381,13 +350,41 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="sst-edit-grid">
+        <div class="sst-edit" data-field="sc">
+          <div class="lbl" data-i18n="escena">Escena</div>
+          <div class="val" data-val>1</div>
+          <div class="row">
+            <button class="step-btn" data-dir="-1">&minus;</button>
+            <button class="step-btn" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="sst-edit" data-field="sh">
+          <div class="lbl" data-i18n="plano">Plano</div>
+          <div class="val" data-val>1</div>
+          <div class="row">
+            <button class="step-btn" data-dir="-1">&minus;</button>
+            <button class="step-btn" data-dir="1">+</button>
+          </div>
+        </div>
+        <div class="sst-edit" data-field="tk">
+          <div class="lbl" data-i18n="toma">Toma</div>
+          <div class="val" data-val>1</div>
+          <div class="row">
+            <button class="step-btn" data-dir="-1">&minus;</button>
+            <button class="step-btn" data-dir="1">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Flags -->
     <div class="card">
-      <div class="take-tag-row">
-        <span class="tag-lbl" id="f-good-label" data-i18n="good">Toma buena</span>
-        <div class="segmented good-seg" data-field="goodTag">
-          <button data-value="buena">✓</button>
-          <button data-value="mala">✗</button>
+      <div class="seg-group">
+        <div class="segmented" data-field="goodTag">
+          <button data-value="buena" data-i18n="buena">✓ BUENA</button>
+          <button data-value="mala" data-i18n="mala">✗ MALA</button>
         </div>
       </div>
     </div>
@@ -2959,12 +2956,7 @@ function renderEdit(){
   document.getElementById('f-dir').value = state.dir || '';
   document.getElementById('f-dp').value = state.dp || '';
 
-  const goodLabel = document.getElementById('f-good-label');
-  if(state.lastTakeNumber){
-    goodLabel.textContent = t('good_prev').replace('{n}', state.lastTakeNumber);
-  } else {
-    goodLabel.textContent = t('good');
-  }
+  // label de goodTag actualizado vía i18n en el HTML
 }
 
 /* ---- eventos pantalla de edicion ---- */
