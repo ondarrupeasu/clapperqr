@@ -31,9 +31,10 @@
   /* ---------- estructura general ---------- */
   .screen{ display:none; height:100%; width:100%; }
   .screen.active{ display:block; }
-  #screen-log{ display:none; flex-direction:column; height:100vh;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
-  #screen-log.active{ display:flex; }
+  #screen-log{ display:none; height:100vh; overflow:hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  #screen-log.active{ display:block; }
+  #screen-log > .log-wrap-inner{ display:flex; flex-direction:column; height:100%; }
 
   /* ================= PANTALLA EDICION ================= */
   #screen-edit{ overflow-y:auto; height:100vh;
@@ -54,7 +55,8 @@
   .btn-log-sep{ margin-right:8px; }
 
   /* pantalla log */
-  #screen-log .edit-inner{ padding-bottom:0; }
+  #screen-log .edit-inner{ padding-bottom:0; width:100%; box-sizing:border-box; }
+  .log-wrap-inner{ display:flex; flex-direction:column; height:100%; }
   .log-table-wrap{ display:flex; flex:1; min-height:0; overflow:hidden; padding:0 14px; }
   .log-fixed-wrap{ flex-shrink:0; overflow-y:auto; overflow-x:hidden; border-right:2px solid var(--border); }
   .log-scroll-wrap{ flex:1; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
@@ -431,6 +433,7 @@
 
 <!-- ================= PANTALLA HISTÓRICO ================= -->
 <div id="screen-log" class="screen">
+<div class="log-wrap-inner">
   <div class="edit-inner">
 
     <div class="topbar">
@@ -514,7 +517,8 @@
   </div>
   <div class="log-empty" id="log-empty" style="display:none">Sin tomas registradas</div>
 
-</div>
+</div><!-- /log-wrap-inner -->
+</div><!-- /screen-log -->
 
 <!-- ================= PANTALLA QR / DATOS ================= -->
 <div id="screen-display" class="screen">
