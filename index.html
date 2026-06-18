@@ -31,6 +31,9 @@
   /* ---------- estructura general ---------- */
   .screen{ display:none; height:100%; width:100%; }
   .screen.active{ display:block; }
+  #screen-log{ display:none; flex-direction:column; height:100vh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
+  #screen-log.active{ display:flex; }
 
   /* ================= PANTALLA EDICION ================= */
   #screen-edit{ overflow-y:auto; height:100vh;
@@ -51,10 +54,8 @@
   .btn-log-sep{ margin-right:8px; }
 
   /* pantalla log */
-  #screen-log{ display:flex; flex-direction:column; height:100vh;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
-  #screen-log .edit-inner{ display:flex; flex-direction:column; flex:1; min-height:0; padding-bottom:0; max-width:none; }
-  .log-table-wrap{ display:flex; flex:1; min-height:0; margin-top:10px; overflow:hidden; }
+  #screen-log .edit-inner{ padding-bottom:0; }
+  .log-table-wrap{ display:flex; flex:1; min-height:0; overflow:hidden; padding:0 14px; }
   .log-fixed-wrap{ flex-shrink:0; overflow-y:auto; overflow-x:hidden; border-right:2px solid var(--border); }
   .log-scroll-wrap{ flex:1; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .log-table{ border-collapse:collapse; font-family:var(--mono); font-size:12px; }
@@ -474,44 +475,45 @@
       </div>
     </div>
 
-    <div class="log-table-wrap">
-      <div class="log-fixed-wrap" id="log-fixed-wrap">
-        <table class="log-table" id="log-table-fixed">
-          <thead>
-            <tr>
-              <th class="th-sort" id="th-hora">HORA <span class="sort-arrow" id="sort-arrow">↑</span></th>
-              <th>SC</th>
-              <th>SH</th>
-              <th>TK</th>
-              <th>✓</th>
-            </tr>
-          </thead>
-          <tbody id="log-tbody-fixed"></tbody>
-        </table>
-      </div>
-      <div class="log-scroll-wrap" id="log-scroll-wrap">
-        <table class="log-table" id="log-table-scroll">
-          <thead>
-            <tr>
-              <th>CAM</th>
-              <th>CARD</th>
-              <th>I/E</th>
-              <th>D/N</th>
-              <th>FPS</th>
-              <th>MM</th>
-              <th>SHT</th>
-              <th>ISO</th>
-              <th>AP</th>
-              <th>WB</th>
-            </tr>
-          </thead>
-          <tbody id="log-tbody-scroll"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="log-empty" id="log-empty" style="display:none">Sin tomas registradas</div>
-
   </div>
+
+  <div class="log-table-wrap">
+    <div class="log-fixed-wrap" id="log-fixed-wrap">
+      <table class="log-table" id="log-table-fixed">
+        <thead>
+          <tr>
+            <th class="th-sort" id="th-hora">HORA <span class="sort-arrow" id="sort-arrow">↑</span></th>
+            <th>SC</th>
+            <th>SH</th>
+            <th>TK</th>
+            <th>✓</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody-fixed"></tbody>
+      </table>
+    </div>
+    <div class="log-scroll-wrap" id="log-scroll-wrap">
+      <table class="log-table" id="log-table-scroll">
+        <thead>
+          <tr>
+            <th>CAM</th>
+            <th>CARD</th>
+            <th>I/E</th>
+            <th>D/N</th>
+            <th>FPS</th>
+            <th>MM</th>
+            <th>SHT</th>
+            <th>ISO</th>
+            <th>AP</th>
+            <th>WB</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody-scroll"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="log-empty" id="log-empty" style="display:none">Sin tomas registradas</div>
+
 </div>
 
 <!-- ================= PANTALLA QR / DATOS ================= -->
