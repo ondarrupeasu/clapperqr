@@ -51,26 +51,29 @@
   .btn-log-sep{ margin-right:8px; }
 
   /* pantalla log */
-  #screen-log{ overflow-y:auto; height:100vh; }
+  #screen-log{ overflow-y:auto; height:100vh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
   .log-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:10px; }
   .log-table{ border-collapse:collapse; width:max-content; min-width:100%; font-family:var(--mono); font-size:12px; }
-  .log-table th{ background:var(--bg-panel); color:var(--fg-dim); font-weight:600; letter-spacing:.08em;
+  .log-table th{ background:#17181a; color:var(--fg-dim); font-weight:600; letter-spacing:.08em;
     padding:7px 10px; border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:1; }
-  .log-table th.col-fixed{ position:sticky; background:var(--bg-panel); z-index:2; }
+  .log-table th.col-fixed{ position:sticky; background:#17181a; z-index:3; }
   .log-table th.col-hora{ left:0; }
   .log-table th.col-sc{ left:72px; }
   .log-table th.col-sh{ left:112px; }
   .log-table th.col-tk{ left:152px; }
   .log-table th.col-good{ left:192px; border-right:1px solid var(--border); }
   .log-table td{ padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; color:var(--fg); }
-  .log-table td.col-fixed{ position:sticky; background:var(--bg); }
+  .log-table td.col-fixed{ position:sticky; background:#0b0b0c; z-index:1; }
   .log-table td.col-hora{ left:0; }
   .log-table td.col-sc{ left:72px; }
   .log-table td.col-sh{ left:112px; }
   .log-table td.col-tk{ left:152px; }
   .log-table td.col-good{ left:192px; border-right:1px solid var(--border); }
   .log-table tr.row-buena td{ color:var(--accent-good); }
+  .log-table tr.row-buena td.col-fixed{ background:#0b0b0c; }
   .log-table tr.row-mala td{ color:var(--accent-bad); }
+  .log-table tr.row-mala td.col-fixed{ background:#0b0b0c; }
   .log-table tr:last-child td{ border-bottom:none; }
   .th-sort{ cursor:pointer; user-select:none; }
   .th-sort:hover{ color:var(--fg); }
@@ -3156,10 +3159,16 @@ function buildPayload(goodVal){
 
 /* ---- pantallas ---- */
 function switchScreen(name){
+  const editEl = document.getElementById('screen-edit');
+  const logEl  = document.getElementById('screen-log');
+  // sincronizar scroll para que el header quede en el mismo sitio
+  if(name === 'log')  logEl.scrollTop  = editEl.scrollTop;
+  if(name === 'edit') editEl.scrollTop = logEl.scrollTop;
+
   state.view = name;
-  document.getElementById('screen-edit').classList.toggle('active', name === 'edit');
+  editEl.classList.toggle('active', name === 'edit');
   document.getElementById('screen-display').classList.toggle('active', name === 'display');
-  document.getElementById('screen-log').classList.toggle('active', name === 'log');
+  logEl.classList.toggle('active', name === 'log');
   if(name === 'log') renderLog();
   saveState();
 }
