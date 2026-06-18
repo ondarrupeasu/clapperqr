@@ -51,29 +51,21 @@
   .btn-log-sep{ margin-right:8px; }
 
   /* pantalla log */
-  #screen-log{ overflow-y:auto; height:100vh;
+  #screen-log{ display:flex; flex-direction:column; height:100vh;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
-  .log-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:10px; position:relative; }
-  .log-table{ border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-family:var(--mono); font-size:12px; }
+  #screen-log .edit-inner{ display:flex; flex-direction:column; flex:1; min-height:0; padding-bottom:0; max-width:none; }
+  .log-table-wrap{ display:flex; flex:1; min-height:0; margin-top:10px; overflow:hidden; }
+  .log-fixed-wrap{ flex-shrink:0; overflow-y:auto; overflow-x:hidden; border-right:2px solid var(--border); }
+  .log-scroll-wrap{ flex:1; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .log-table{ border-collapse:collapse; font-family:var(--mono); font-size:12px; }
   .log-table th{ background:#17181a; color:var(--fg-dim); font-weight:600; letter-spacing:.08em;
-    padding:7px 10px; border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:1; }
-  .log-table th.col-fixed{ position:sticky; background:#17181a; z-index:3; }
-  .log-table th.col-hora{ left:0; }
-  .log-table th.col-sc{ left:72px; }
-  .log-table th.col-sh{ left:112px; }
-  .log-table th.col-tk{ left:152px; }
-  .log-table th.col-good{ left:192px; border-right:1px solid var(--border); }
+    padding:7px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
   .log-table td{ padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; color:var(--fg); }
-  .log-table td.col-fixed{ position:sticky; background:#0b0b0c; z-index:2; }
-  .log-table td.col-hora{ left:0; }
-  .log-table td.col-sc{ left:72px; }
-  .log-table td.col-sh{ left:112px; }
-  .log-table td.col-tk{ left:152px; }
-  .log-table td.col-good{ left:192px; border-right:1px solid var(--border); }
-  .log-table tr.row-buena td{ color:var(--accent-good); }
-  .log-table tr.row-buena td.col-fixed{ background:#0b0b0c; }
-  .log-table tr.row-mala td{ color:var(--accent-bad); }
-  .log-table tr.row-mala td.col-fixed{ background:#0b0b0c; }
+  .log-fixed-wrap .log-table td{ background:#0b0b0c; }
+  .log-fixed-wrap .log-table tr.row-buena td{ color:var(--accent-good); background:#0b0b0c; }
+  .log-fixed-wrap .log-table tr.row-mala  td{ color:var(--accent-bad);  background:#0b0b0c; }
+  .log-scroll-wrap .log-table tr.row-buena td{ color:var(--accent-good); }
+  .log-scroll-wrap .log-table tr.row-mala  td{ color:var(--accent-bad); }
   .log-table tr:last-child td{ border-bottom:none; }
   .th-sort{ cursor:pointer; user-select:none; }
   .th-sort:hover{ color:var(--fg); }
@@ -483,30 +475,41 @@
     </div>
 
     <div class="log-table-wrap">
-      <table class="log-table" id="log-table">
-        <thead>
-          <tr>
-            <th class="col-fixed col-hora th-sort" id="th-hora">HORA <span class="sort-arrow" id="sort-arrow">↑</span></th>
-            <th class="col-fixed col-sc">SC</th>
-            <th class="col-fixed col-sh">SH</th>
-            <th class="col-fixed col-tk">TK</th>
-            <th class="col-fixed col-good">✓</th>
-            <th>CAM</th>
-            <th>CARD</th>
-            <th>I/E</th>
-            <th>D/N</th>
-            <th>FPS</th>
-            <th>MM</th>
-            <th>SHT</th>
-            <th>ISO</th>
-            <th>AP</th>
-            <th>WB</th>
-          </tr>
-        </thead>
-        <tbody id="log-tbody"></tbody>
-      </table>
-      <div class="log-empty" id="log-empty" style="display:none">Sin tomas registradas</div>
+      <div class="log-fixed-wrap" id="log-fixed-wrap">
+        <table class="log-table" id="log-table-fixed">
+          <thead>
+            <tr>
+              <th class="th-sort" id="th-hora">HORA <span class="sort-arrow" id="sort-arrow">↑</span></th>
+              <th>SC</th>
+              <th>SH</th>
+              <th>TK</th>
+              <th>✓</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody-fixed"></tbody>
+        </table>
+      </div>
+      <div class="log-scroll-wrap" id="log-scroll-wrap">
+        <table class="log-table" id="log-table-scroll">
+          <thead>
+            <tr>
+              <th>CAM</th>
+              <th>CARD</th>
+              <th>I/E</th>
+              <th>D/N</th>
+              <th>FPS</th>
+              <th>MM</th>
+              <th>SHT</th>
+              <th>ISO</th>
+              <th>AP</th>
+              <th>WB</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody-scroll"></tbody>
+        </table>
+      </div>
     </div>
+    <div class="log-empty" id="log-empty" style="display:none">Sin tomas registradas</div>
 
   </div>
 </div>
@@ -3598,35 +3601,51 @@ document.getElementById('btn-save-take').addEventListener('click', saveCurrentTa
 let logSortAsc = true;
 
 function renderLog(){
-  const tbody = document.getElementById('log-tbody');
-  const empty = document.getElementById('log-empty');
-  const arrow = document.getElementById('sort-arrow');
+  const tbodyFixed  = document.getElementById('log-tbody-fixed');
+  const tbodyScroll = document.getElementById('log-tbody-scroll');
+  const empty  = document.getElementById('log-empty');
+  const arrow  = document.getElementById('sort-arrow');
+  const fixedWrap  = document.getElementById('log-fixed-wrap');
+  const scrollWrap = document.getElementById('log-scroll-wrap');
+
   if(!state.log || state.log.length === 0){
-    tbody.innerHTML = '';
+    tbodyFixed.innerHTML = '';
+    tbodyScroll.innerHTML = '';
     empty.style.display = 'block';
+    fixedWrap.style.display = 'none';
+    scrollWrap.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
+  fixedWrap.style.display = '';
+  scrollWrap.style.display = '';
   arrow.textContent = logSortAsc ? '↑' : '↓';
 
   const entries = logSortAsc ? [...state.log] : [...state.log].reverse();
 
-  tbody.innerHTML = entries.map(e => {
+  const rowsFixed = [];
+  const rowsScroll = [];
+
+  entries.forEach(e => {
     const hora = e.clap_ts ? e.clap_ts.slice(11,19) : (e.ts ? e.ts.slice(11,19) : '—');
     const good = e.toma_buena === 'buena' ? '✓' : e.toma_buena === 'mala' ? '✗' : '—';
-    const rowClass = e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '';
-    const fps = e.fps != null ? (Number.isInteger(e.fps) ? e.fps : parseFloat(e.fps).toFixed(3).replace(/0+$/,'').replace(/\.$/,'')) : '—';
-    const mm  = e.mm   != null ? e.mm + 'mm' : '—';
-    const sht = e.sht  != null ? '1/' + e.sht : '—';
-    const iso = e.iso  != null ? e.iso : '—';
-    const ap  = e.ap   != null ? 'f' + e.ap : '—';
-    const wb  = e.wb   != null ? e.wb + 'K' : '—';
-    return `<tr class="${rowClass}">
-      <td class="col-fixed col-hora">${hora}</td>
-      <td class="col-fixed col-sc">${e.sc ?? '—'}</td>
-      <td class="col-fixed col-sh">${e.sh ?? '—'}</td>
-      <td class="col-fixed col-tk">${e.tk ?? '—'}</td>
-      <td class="col-fixed col-good">${good}</td>
+    const cls  = e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '';
+    const fps  = e.fps != null ? (Number.isInteger(e.fps) ? e.fps : parseFloat(e.fps).toFixed(3).replace(/0+$/,'').replace(/\.$/,'')) : '—';
+    const mm   = e.mm   != null ? e.mm + 'mm' : '—';
+    const sht  = e.sht  != null ? '1/' + e.sht : '—';
+    const iso  = e.iso  != null ? e.iso : '—';
+    const ap   = e.ap   != null ? 'f' + e.ap : '—';
+    const wb   = e.wb   != null ? e.wb + 'K' : '—';
+
+    rowsFixed.push(`<tr class="${cls}">
+      <td>${hora}</td>
+      <td>${e.sc ?? '—'}</td>
+      <td>${e.sh ?? '—'}</td>
+      <td>${e.tk ?? '—'}</td>
+      <td>${good}</td>
+    </tr>`);
+
+    rowsScroll.push(`<tr class="${cls}">
       <td>${e.cam ?? '—'}</td>
       <td>${e.card != null ? String(e.card).padStart(2,'0') : '—'}</td>
       <td>${e.int ?? '—'}</td>
@@ -3637,8 +3656,18 @@ function renderLog(){
       <td>${iso}</td>
       <td>${ap}</td>
       <td>${wb}</td>
-    </tr>`;
-  }).join('');
+    </tr>`);
+  });
+
+  tbodyFixed.innerHTML  = rowsFixed.join('');
+  tbodyScroll.innerHTML = rowsScroll.join('');
+
+  // sincronizar scroll vertical entre las dos tablas
+  if(!fixedWrap._logScrollBound){
+    fixedWrap._logScrollBound = true;
+    fixedWrap.addEventListener('scroll', ()=>{ scrollWrap.scrollTop = fixedWrap.scrollTop; });
+    scrollWrap.addEventListener('scroll', ()=>{ fixedWrap.scrollTop = scrollWrap.scrollTop; });
+  }
 }
 
 document.getElementById('btn-log').addEventListener('click', ()=>{
