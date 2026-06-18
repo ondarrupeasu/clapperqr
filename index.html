@@ -111,7 +111,9 @@
   .check-row input{ width:20px; height:20px; accent-color:var(--accent); }
   .check-row.good input{ accent-color:var(--accent-good); }
   /* ---- botones toma buena / mala ---- */
-  .take-tag-row{ display:none; }
+  .take-tag-row{ display:flex; align-items:center; gap:12px; }
+  .take-tag-row .tag-lbl{ font-family:var(--mono); font-size:12px; letter-spacing:.06em; color:var(--fg-dim); flex:1; }
+  .take-tag-seg{ flex:none !important; min-width:120px; }
   .segmented[data-field="goodTag"] button[data-value="buena"].active{ background:var(--accent-good); color:#0a0a0a; font-weight:700; }
   .segmented[data-field="goodTag"] button[data-value="mala"].active{ background:var(--accent-bad); color:#0a0a0a; font-weight:700; }
 
@@ -381,10 +383,11 @@
 
     <!-- Flags -->
     <div class="card">
-      <div class="seg-group">
-        <div class="segmented" data-field="goodTag">
-          <button data-value="buena" data-i18n="buena">✓ BUENA</button>
-          <button data-value="mala" data-i18n="mala">✗ MALA</button>
+      <div class="take-tag-row">
+        <span class="tag-lbl" id="f-good-label">T.— ¿buena/mala?</span>
+        <div class="segmented take-tag-seg" data-field="goodTag">
+          <button data-value="buena">✓</button>
+          <button data-value="mala">✗</button>
         </div>
       </div>
     </div>
@@ -2956,7 +2959,12 @@ function renderEdit(){
   document.getElementById('f-dir').value = state.dir || '';
   document.getElementById('f-dp').value = state.dp || '';
 
-  // label de goodTag actualizado vía i18n en el HTML
+  const goodLabel = document.getElementById('f-good-label');
+  if(goodLabel){
+    goodLabel.textContent = state.lastTakeNumber
+      ? t('good_prev').replace('{n}', state.lastTakeNumber)
+      : t('good');
+  }
 }
 
 /* ---- eventos pantalla de edicion ---- */
