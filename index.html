@@ -3995,102 +3995,108 @@ async function calibMeasureLatency(){
   const actx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   audioCtx = actx;
   if(actx.state === 'suspended') await actx.resume();
+  if(actx.state === 'suspended') await actx.resume();
 
-  // Buffer mínimo para minimizar latencia de grabación (~6ms a 44100Hz)
-  const SCRIPT_BUFFER = 256;
-  const source   = actx.createMediaStreamSource(calibMicStream);
-  const recorder = actx.createScriptProcessor(SCRIPT_BUFFER, 1, 1);
-  const buffers  = [];
-  let recording  = false;
-  let recStart   = 0;
-  const REC_DURATION = 0.8;
-
-  // Latencia de salida del sistema (DAC + driver) — disponible en AudioContext
   const outputLatencyMs = Math.round((actx.outputLatency || 0) * 1000);
   const inputLatencyMs  = Math.round((actx.inputLatency  || 0) * 1000);
+  const REC_DURATION_MS = 1200;
 
-  recorder.onaudioprocess = e => {
-    if(!recording) return;
-    buffers.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-    if((actx.currentTime - recStart) >= REC_DURATION){
-      recording = false;
-      source.disconnect();
-      recorder.disconnect();
-      processCalibRecording(buffers, actx.sampleRate, emitTime);
-    }
-  };
-  source.connect(recorder);
-  recorder.connect(actx.destination);   // necesario en algunos browsers
+  // Grabar con MediaRecorder — más fiable en iOS que ScriptProcessor
+  const mrChunks = [];
+  let mr;
+  try {
+    mr = new MediaRecorder(calibMicStream);
+  } catch(e) {
+    statusEl.textContent = '⚠ MediaRecorder no disponible en este dispositivo';
+    calibMeasuring = false;
+    document.getElementById('btn-calib-measure').disabled = false;
+    return;
+  }
+  mr.ondataavailable = e => { if(e.data && e.data.size > 0) mrChunks.push(e.data); };
 
-  // Emitir click impulsivo (1ms de ruido blanco a máxima amplitud)
-  const clickBuf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.001), actx.sampleRate);
+  // Click: semiciclo de seno a 1000Hz durante 5ms — más audible que impulso puro
+  const clickDur  = 0.005;
+  const clickBuf  = actx.createBuffer(1, Math.floor(actx.sampleRate * clickDur), actx.sampleRate);
   const clickData = clickBuf.getChannelData(0);
-  for(let i=0;i<clickData.length;i++) clickData[i] = (i === 0) ? 1.0 : 0.0;
-  const clickSrc = actx.createBufferSource();
+  for(let i = 0; i < clickData.length; i++){
+    clickData[i] = Math.sin(Math.PI * i / clickData.length) *
+                   Math.sin(2 * Math.PI * 1000 * i / actx.sampleRate);
+  }
+  const clickSrc  = actx.createBufferSource();
   clickSrc.buffer = clickBuf;
   const clickGain = actx.createGain();
   clickGain.gain.value = 8.0;
   clickSrc.connect(clickGain);
   clickGain.connect(actx.destination);
 
-  const emitTime = actx.currentTime + 0.05;   // 50ms de margen para arrancar la grabación
-  clickSrc.start(emitTime);
-  recStart  = emitTime;
-  recording = true;
+  // Emitir 50ms después de arrancar la grabación
+  const t0 = actx.currentTime + 0.05;
+  mr.start(50);
+  clickSrc.start(t0);
+  statusEl.textContent = '🔊 Click emitido — escuchando…';
+  setTimeout(() => mr.stop(), 50 + REC_DURATION_MS);
 
-  statusEl.textContent = '🔊 Click emitido — escuchando respuesta…';
+  mr.onstop = async () => {
+    statusEl.textContent = 'Analizando…';
+    try {
+      const blob    = new Blob(mrChunks, { type: mr.mimeType });
+      const arrBuf  = await blob.arrayBuffer();
+      const decoded = await actx.decodeAudioData(arrBuf);
+      const sig     = decoded.getChannelData(0);
+      const sr      = decoded.sampleRate;
+      const maxAbs  = sig.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+      console.log('[calib] maxAbs=' + maxAbs.toFixed(4) + ' samples=' + sig.length);
+
+      if(maxAbs < 0.005){
+        statusEl.textContent = '⚠ Señal demasiado baja — sube el volumen';
+        calibMeasuring = false;
+        document.getElementById('btn-calib-measure').disabled = false;
+        return;
+      }
+
+      const threshold   = maxAbs * 0.10;
+      const skipSamples = Math.floor(sr * 0.020);
+      let onsetSample   = -1;
+      for(let i = skipSamples; i < sig.length; i++){
+        if(Math.abs(sig[i]) >= threshold){ onsetSample = i; break; }
+      }
+      console.log('[calib] onset=' + onsetSample + ' thr=' + threshold.toFixed(4));
+
+      if(onsetSample < 0){
+        statusEl.textContent = '⚠ Click no detectado — acerca el altavoz y repite';
+        calibMeasuring = false;
+        document.getElementById('btn-calib-measure').disabled = false;
+        return;
+      }
+
+      // Restar los 50ms de margen de emisión y la latencia del sistema
+      const rawMs     = Math.round((onsetSample / sr) * 1000) - 50;
+      const systemMs  = outputLatencyMs + inputLatencyMs;
+      const latencyMs = Math.max(1, rawMs - systemMs);
+
+      calibMeasurements.push(latencyMs);
+      const avg    = Math.round(calibMeasurements.reduce((a,b)=>a+b,0) / calibMeasurements.length);
+      const nMeas  = calibMeasurements.length;
+      const sysStr = systemMs > 0 ? ` (sistema: ${systemMs}ms)` : \'\';
+
+      resultEl.textContent = latencyMs + ' ms';
+      resultEl.classList.remove('no-measure');
+      document.getElementById('calib-slider').value = latencyMs;
+      document.getElementById('calib-slider-val').textContent = latencyMs + ' ms';
+      statusEl.textContent = nMeas === 1
+        ? `${latencyMs} ms${sysStr} — repite para confirmar`
+        : `Medición ${nMeas}: ${latencyMs} ms · promedio: ${avg} ms${sysStr}`;
+
+    } catch(err) {
+      console.error('[calib]', err);
+      statusEl.textContent = '⚠ Error al analizar: ' + err.message;
+    }
+    calibMeasuring = false;
+    document.getElementById('btn-calib-measure').disabled = false;
+  };
 }
 
-function processCalibRecording(buffers, sr, emitTime){
-  const statusEl = document.getElementById('calib-status');
-  const resultEl = document.getElementById('calib-result');
-  const slider   = document.getElementById('calib-slider');
-  const sliderVal= document.getElementById('calib-slider-val');
-
-  // Concatenar todos los buffers
-  const total = buffers.reduce((s,b)=>s+b.length, 0);
-  const sig   = new Float32Array(total);
-  let off = 0;
-  for(const b of buffers){ sig.set(b, off); off += b.length; }
-
-  // Buscar el primer pico > 20% del máximo absoluto (onset del click recibido)
-  const maxAbs = sig.reduce((m,v)=>Math.max(m,Math.abs(v)), 0);
-  const threshold = maxAbs * 0.20;
-  let onsetSample = -1;
-  for(let i=0; i<sig.length; i++){
-    if(Math.abs(sig[i]) >= threshold){ onsetSample = i; break; }
-  }
-
-  calibMeasuring = false;
-  document.getElementById('btn-calib-measure').disabled = false;
-
-  if(onsetSample < 0 || maxAbs < 0.01){
-    statusEl.textContent = '⚠ No se detectó el click — sube el volumen o acerca el altavoz';
-    return;
-  }
-
-  // La grabación empezó en emitTime; cada sample = 1/sr segundos
-  // El onset está a (onsetSample / sr) segundos desde el inicio de la grabación,
-  // que empezó justo cuando se emitió el click.
-  // Latencia acústica real = onset medido - latencia del pipeline de audio del sistema
-  const rawMs     = Math.round((onsetSample / sr) * 1000);
-  const systemMs  = outputLatencyMs + inputLatencyMs;
-  const latencyMs = Math.max(0, rawMs - systemMs);
-
-  calibMeasurements.push(latencyMs);
-  const avg = Math.round(calibMeasurements.reduce((a,b)=>a+b,0) / calibMeasurements.length);
-
-  resultEl.textContent = latencyMs + ' ms';
-  resultEl.classList.remove('no-measure');
-  slider.value  = latencyMs;
-  sliderVal.textContent = latencyMs + ' ms';
-
-  const nMeas = calibMeasurements.length;
-  const sysInfo = systemMs > 0 ? ` (sistema: ${systemMs}ms descontado)` : '';
-  statusEl.textContent = nMeas === 1
-    ? `Medición: ${latencyMs} ms${sysInfo} — repite para más precisión`
-    : `Medición ${nMeas}: ${latencyMs} ms (promedio: ${avg} ms)${sysInfo}`;
-}
+function processCalibRecording(){ /* legacy — reemplazada por MediaRecorder */ }
 
 /* ── Listeners de la pantalla de calibración ─────────────────── */
 document.getElementById('btn-calib-measure').addEventListener('click', calibMeasureLatency);
