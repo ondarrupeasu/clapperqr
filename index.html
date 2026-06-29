@@ -3552,6 +3552,13 @@ function runCountdown(){
 /* ---- sonido "clap" sintetizado (Web Audio API) ---- */
 let audioCtx = null;
 
+// Variables de calibración BT
+let calibMicStream    = null;
+let calibAnimFrame    = null;
+let calibAnalyser     = null;
+let calibMeasuring    = false;
+let calibMeasurements = [];
+
 /* iOS Safari exige que el AudioContext se cree/reanude dentro de un
    gesto de usuario. Se llama en el primer touchstart de la pantalla
    para que playClap() suene mas tarde sin gesto directo. */
@@ -3859,7 +3866,6 @@ window.addEventListener('resize', ()=>{
 ══════════════════════════════════════════════════════════════ */
 
 const CALIB_STORAGE_KEY = 'claptag_bt_latency_ms';
-let calibMicStream   = null;
 
 /* Actualiza el label de estado del slider y el saved-info */
 function calibUpdateUI(){
