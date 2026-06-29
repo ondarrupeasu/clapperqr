@@ -3399,6 +3399,27 @@ displayEl.addEventListener('touchend', (e)=>{
 
 displayEl.addEventListener('touchcancel', handleLongPressEnd, {passive:true});
 
+/* ---- beep de cuenta atras (tono sinusoidal puro) ---- */
+function playBeep(freq, duration){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+    const ctx = audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq || 880;
+    gain.gain.setValueAtTime(0.0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(6.0, ctx.currentTime + 0.005);  // ataque rápido
+    gain.gain.setValueAtTime(6.0, ctx.currentTime + (duration || 0.12));
+    gain.gain.linearRampToValueAtTime(0.0, ctx.currentTime + (duration || 0.12) + 0.02);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + (duration || 0.12) + 0.03);
+  }catch(e){}
+}
+
 /* ---- cuenta atras 3-2-1 + flash rojo + clap ---- */
 function runCountdown(){
   const cdOverlay = document.getElementById('countdown-overlay');
@@ -3409,6 +3430,7 @@ function runCountdown(){
 
   cdOverlay.classList.add('show');
   cdNumber.textContent = sequence[0];
+  playBeep(880, 0.12);   // beep en el 3
 
   var startTime = performance.now();
 
@@ -3420,6 +3442,7 @@ function runCountdown(){
       var num = sequence[step];
       if(cdNumber.textContent !== String(num)){
         cdNumber.textContent = num;
+        playBeep(880, 0.12);   // beep en el 2 y en el 1
       }
       requestAnimationFrame(tick);
     } else {
