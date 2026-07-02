@@ -157,6 +157,14 @@
   #keypad-cancel{ background:var(--bg-input); color:var(--fg); }
   #keypad-ok{ background:var(--accent); color:#fff; border-color:var(--accent); }
 
+  /* ---- notas de la toma ---- */
+  .note-input{ width:100%; margin-top:10px; background:var(--bg-input); color:var(--fg);
+    border:1px solid var(--border); border-radius:8px; padding:8px 10px;
+    font-family:inherit; font-size:14px; resize:vertical; box-sizing:border-box; }
+  .note-input:focus{ outline:none; border-color:var(--accent); }
+  .note-input::placeholder{ color:var(--fg-dim); }
+  .log-table td.td-note{ white-space:normal; min-width:150px; max-width:260px; }
+
   /* ---- segmentados (INT/EXT, DIA/NOCHE, SND) ---- */
   .seg-group{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
   .seg-group:last-child{ margin-bottom:0; }
@@ -483,6 +491,8 @@
           <button data-value="mala">✗</button>
         </div>
       </div>
+      <textarea id="f-note" class="note-input" rows="2" data-i18n-ph="notas_ph"
+        placeholder="Notas de la toma…"></textarea>
     </div>
 
 
@@ -526,6 +536,7 @@
             <th>ISO</th>
             <th>AP</th>
             <th>WB</th>
+            <th>NOTAS</th>
           </tr>
         </thead>
         <tbody id="log-tbody-scroll"></tbody>
@@ -2917,7 +2928,7 @@ const DEFAULT_STATE = {
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
   fps:25, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
-  goodTag:null, pendingAdvance:false,
+  goodTag:null, noteText:'', pendingAdvance:false,
   pendingGood:'', lastTakeNumber:null,
   sessionDate:null, sessionTakeCount:0, lastGoodTake:'',
   pr:'', dir:'', dp:'',
@@ -3009,6 +3020,7 @@ const I18N = {
     lente:'Lente (mm)', obturador:'Obturador 1/x', diafragma:'Diafragma f/', wb:'Balance de blancos (K)',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
+    notas:'Notas', notas_ph:'Notas de la toma…',
     b_cam:'CAM', b_esc:'ESC', b_fps:'FPS', b_lente:'LENTE', b_obt:'OBT', b_iso:'ISO',
     b_diaf:'DIAF', b_wb:'WB',
     toast_no_log:'No hay tomas registradas todavía',
@@ -3026,6 +3038,7 @@ const I18N = {
     lente:'Lens (mm)', obturador:'Shutter 1/x', diafragma:'Aperture f/', wb:'White balance (K)',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
+    notas:'Notes', notas_ph:'Take notes…',
     b_cam:'CAM', b_esc:'LOC', b_fps:'FPS', b_lente:'LENS', b_obt:'SHUT', b_iso:'ISO',
     b_diaf:'APER', b_wb:'WB',
     toast_no_log:'No takes recorded yet',
@@ -3043,6 +3056,7 @@ const I18N = {
     lente:'Lentea (mm)', obturador:'Obturadorea 1/x', diafragma:'Diafragma f/', wb:'Zuri balantzea (K)',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
+    notas:'Oharrak', notas_ph:'Tomaren oharrak…',
     b_cam:'KAM', b_esc:'KOK', b_fps:'FPS', b_lente:'LENTE', b_obt:'OBT', b_iso:'ISO',
     b_diaf:'DIAF', b_wb:'ZB',
     toast_no_log:'Oraindik ez dago tomarik erregistratuta',
@@ -3122,6 +3136,7 @@ function renderEdit(){
   document.getElementById('f-pr').value = state.pr || '';
   document.getElementById('f-dir').value = state.dir || '';
   document.getElementById('f-dp').value = state.dp || '';
+  document.getElementById('f-note').value = state.noteText || '';
 
   const goodLabel = document.getElementById('f-good-label');
   const cardFlags = document.getElementById('card-flags');
@@ -3204,6 +3219,10 @@ document.querySelectorAll('.collapsible').forEach(h=>{
     state[field] = e.target.value;
     saveState();
   });
+});
+document.getElementById('f-note').addEventListener('input', e=>{
+  state.noteText = e.target.value;
+  saveState();
 });
 
 /* ---- teclado numérico a medida (reutilizable: Escena/Plano/Toma y WB) ---- */
@@ -3457,7 +3476,7 @@ function confirmRoll(clapPayload){
     cam: state.cam, card: state.card,
     int: state.int, dn: state.dn,
     fps: state.fps, mm: state.mm, sht: state.sht, iso: state.iso, ap: state.ap, wb: state.wb,
-    toma_buena: state.goodTag, good_enviado: goodToUse
+    toma_buena: state.goodTag, notes: state.noteText || '', good_enviado: goodToUse
   });
 
   state.pendingGood = state.goodTag === 'buena' ? takenKey(state.cam, state.card, state.sc, state.sh, state.tk) : (state.goodTag === 'mala' ? 'mala' : '');
@@ -3481,6 +3500,7 @@ window.confirmRoll = confirmRoll;
 document.getElementById('btn-edit-icon').addEventListener('click', ()=>{
   if(state.pendingAdvance){
     state.goodTag = null;
+    state.noteText = '';
     state.tk += 1;
     state.pendingAdvance = false;
     saveState();
@@ -3698,7 +3718,7 @@ function playClap(){
 
 /* ---- exportar log de sesion (CSV via Web Share API, con fallback de descarga) ---- */
 function buildCSV(){
-  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','int','dn','fps','mm','sht','iso','ap','wb','toma_buena','good_enviado'];
+  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','int','dn','fps','mm','sht','iso','ap','wb','toma_buena','notes','good_enviado'];
   const lines = [];
 
   const meta = [
@@ -3753,6 +3773,7 @@ function saveCurrentTake(){
     int: state.int, dn: state.dn,
     fps: state.fps, mm: state.mm, sht: state.sht, iso: state.iso, ap: state.ap, wb: state.wb,
     toma_buena: state.goodTag,
+    notes: state.noteText || '',
     good_enviado: state.goodTag === 'buena' ? takenKey(state.cam, state.card, state.sc, state.sh, state.tk) : (state.goodTag === 'mala' ? 'mala' : '')
   };
 
@@ -3815,6 +3836,7 @@ function renderLog(){
     const iso  = e.iso  != null ? e.iso : '—';
     const ap   = e.ap   != null ? 'f' + e.ap : '—';
     const wb   = e.wb   != null ? e.wb + 'K' : '—';
+    const notes = (e.notes || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     rowsFixed.push(`<tr class="${cls}">
       <td>${hora}</td>
@@ -3835,6 +3857,7 @@ function renderLog(){
       <td>${iso}</td>
       <td>${ap}</td>
       <td>${wb}</td>
+      <td class="td-note">${notes || '—'}</td>
     </tr>`);
   });
 
