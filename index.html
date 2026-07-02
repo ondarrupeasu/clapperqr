@@ -224,6 +224,21 @@
   #screen-display{ position:relative; height:100vh; width:100vw; overflow:hidden; touch-action:none; }
   .view{ position:absolute; top:0; right:0; bottom:0; left:0; display:none; }
   .view.active{ display:flex; }
+  /* ---- botón de esquina en la vista de datos (invertir colores) ---- */
+  .disp-corner-btn{ position:absolute; top:calc(env(safe-area-inset-top) + 10px);
+    right:calc(env(safe-area-inset-right) + 10px); z-index:6; width:42px; height:42px;
+    border-radius:50%; border:1px solid var(--border); background:rgba(20,20,20,.5);
+    color:var(--fg); font-size:22px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  /* ---- modo negativo de la pantalla de datos (fondo blanco, texto negro) ---- */
+  #screen-display.negative #view-data{ background:#fff; }
+  #screen-display.negative .sst-box{ border-color:#111; }
+  #screen-display.negative .sst-box .v{ color:#000; }
+  #screen-display.negative .sst-box .l{ color:#444; }
+  #screen-display.negative .clock-row{ color:#444; }
+  #screen-display.negative .badge{ color:#000; border-color:#999; }
+  #screen-display.negative .badge .l{ color:#555; }
+  #screen-display.negative .edit-icon{ color:#000; border-color:#999; background:rgba(255,255,255,.5); }
+  #screen-display.negative .disp-corner-btn{ color:#000; border-color:#999; background:rgba(255,255,255,.5); }
   #view-qr{ align-items:center; justify-content:center; }
   #qr-canvas{ width:min(92vw,92vh); height:min(92vw,92vh); }
 
@@ -597,6 +612,7 @@
   </div>
 
   <div id="view-data" class="view">
+    <button id="btn-negative" class="disp-corner-btn" title="Invertir colores (fondo blanco)">◐</button>
     <div class="clock-row" id="clock-row"></div>
     <div class="sst-mid">
       <div class="sst-grid">
@@ -2939,7 +2955,7 @@ const DEFAULT_STATE = {
   int:'INT', dn:'DIA',
   fps:25, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
   goodTag:null, noteText:'', pendingAdvance:false,
-  autoAdvance:true, dirty:false,
+  autoAdvance:true, dirty:false, negativeData:false,
   pendingGood:'', lastTakeNumber:null,
   sessionDate:null, sessionTakeCount:0, lastGoodTake:'',
   pr:'', dir:'', dp:'',
@@ -3489,7 +3505,20 @@ function renderDataView(payload){
   const bottom = document.getElementById('badges-bottom');
   bottom.innerHTML = '';
   badges.forEach(([l,v]) => bottom.appendChild(makeBadge(l,v)));
+  applyNegative();
 }
+
+/* Modo negativo de la pantalla de datos: fondo blanco / texto negro,
+   por si en cámara no se lee bien el blanco sobre negro. Persiste. */
+function applyNegative(){
+  document.getElementById('screen-display').classList.toggle('negative', !!state.negativeData);
+}
+document.getElementById('btn-negative').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  state.negativeData = !state.negativeData;
+  saveState();
+  applyNegative();
+});
 
 /* ---- publicar ---- */
 function publicar(){
