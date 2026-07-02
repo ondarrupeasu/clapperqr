@@ -3722,13 +3722,10 @@ function runCountdown(){
   const btComp = calibGetSavedMs ? calibGetSavedMs() : 0;
 
   cdOverlay.classList.add('show');
-  cdNumber.textContent = sequence[0];
-  cdSweep(0);
-  // Beep del PRIMER número (3): el tick solo suena al CAMBIAR de número, y el
-  // primero no es un cambio, así que aquí disparamos el beep inicial.
-  if(BEEP_NUMS.has(sequence[0])) playBeep(880, 0.080, -btComp);
+  cdNumber.textContent = '';   // ~0,5s de negro inicial: da margen para que el
+  cdSweep(0);                  // audio (contexto recién reanudado) y el "3" no vayan pegados al arranque
 
-  var startTime = performance.now();
+  var startTime;
 
   function tick(){
     var elapsed = performance.now() - startTime;
@@ -3760,7 +3757,13 @@ function runCountdown(){
     }
   }
 
-  requestAnimationFrame(tick);
+  // Tras ~0,5s de negro: mostrar el "3", su beep, y arrancar la cuenta.
+  setTimeout(function(){
+    cdNumber.textContent = sequence[0];
+    if(BEEP_NUMS.has(sequence[0])) playBeep(880, 0.080, -btComp);
+    startTime = performance.now();
+    requestAnimationFrame(tick);
+  }, 500);
 }
 
 /* ---- sonido "clap" sintetizado (Web Audio API) ---- */
