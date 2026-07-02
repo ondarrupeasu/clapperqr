@@ -3724,6 +3724,9 @@ function runCountdown(){
   cdOverlay.classList.add('show');
   cdNumber.textContent = sequence[0];
   cdSweep(0);
+  // Beep del PRIMER número (3): el tick solo suena al CAMBIAR de número, y el
+  // primero no es un cambio, así que aquí disparamos el beep inicial.
+  if(BEEP_NUMS.has(sequence[0])) playBeep(880, 0.080, -btComp);
 
   var startTime = performance.now();
 
