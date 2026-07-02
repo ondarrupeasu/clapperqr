@@ -3889,6 +3889,40 @@ function buildCSV(){
   return lines.join('\r\n');
 }
 
+/* ---- JSON canónico (sin pérdidas): metadatos + todas las tomas tal cual.
+   Es el formato pensado para importar en ClapperQR Desktop y para futuras
+   integraciones. ---- */
+function buildJSON(){
+  return JSON.stringify({
+    app: 'ClapperQR',
+    version: 1,
+    produccion: state.pr || '',
+    director: state.dir || '',
+    dp: state.dp || '',
+    fecha_sesion: state.sessionDate || '',
+    tomas: state.log,
+  }, null, 2);
+}
+
+/* ---- Texto legible para compartir rápido (email/WhatsApp) ---- */
+function buildText(){
+  const L = [];
+  L.push('ClapperQR — Log de sesión');
+  if(state.pr)  L.push('Producción: ' + state.pr);
+  if(state.dir) L.push('Director/a: ' + state.dir);
+  if(state.dp)  L.push('Dir. fotografía: ' + state.dp);
+  L.push('Fecha: ' + (state.sessionDate || ''));
+  L.push('');
+  state.log.forEach(e=>{
+    const hora = e.clap_ts ? e.clap_ts.slice(11,19) : (e.ts ? e.ts.slice(11,19) : '');
+    const good = e.toma_buena === 'buena' ? '  ✓ BUENA' : e.toma_buena === 'mala' ? '  ✗ mala' : '';
+    const card = e.card != null ? String(e.card).padStart(2,'0') : '—';
+    L.push(`${hora}  Esc ${e.sc} / Plano ${e.sh} / Toma ${e.tk}  ·  Cam ${e.cam}·${card}${good}`);
+    if(e.notes) L.push('   Nota: ' + e.notes);
+  });
+  return L.join('\n');
+}
+
 /* ---- guardar la toma actual en el log de sesion, reflejando el
    estado real de "toma buena" en este momento (true o false).
    Si ya existe una entrada para esta toma (sc-sh-tk-cam-card, p.ej.
@@ -4024,29 +4058,35 @@ function showToast(msg){
 }
 
 async function exportLog(){
-  const hayMarcaPendiente = state.lastTakeNumber && state.goodTag != null;
-  if(state.log.length === 0 && !hayMarcaPendiente){
+  if(state.log.length === 0){
     showToast(t('toast_no_log'));
     return;
   }
-  const csv = buildCSV();
-  const filename = `claqueta_log_${new Date().toISOString().slice(0,10)}.csv`;
-  const blob = new Blob([csv], {type:'text/csv'});
+  const date = new Date().toISOString().slice(0,10);
+  const files = [
+    new File([buildCSV()],  `claqueta_${date}.csv`,  {type:'text/csv'}),
+    new File([buildJSON()], `claqueta_${date}.json`, {type:'application/json'}),
+    new File([buildText()], `claqueta_${date}.txt`,  {type:'text/plain'}),
+  ];
 
+  // Hoja de compartir con los tres formatos a la vez (CSV importa a Desktop,
+  // JSON es el canónico, TXT para leer/enviar rápido).
   if(navigator.canShare && window.File){
     try{
-      const file = new File([blob], filename, {type:'text/csv'});
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:'Log de sesión'});
+      if(navigator.canShare({files})){
+        await navigator.share({files, title:'Log de sesión'});
         return;
       }
     }catch(e){ /* cancelado o no soportado: cae al fallback de descarga */ }
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
+  // Fallback: descargar cada archivo por separado.
+  files.forEach(f=>{
+    const url = URL.createObjectURL(f);
+    const a = document.createElement('a');
+    a.href = url; a.download = f.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
 }
 document.getElementById('btn-export').addEventListener('click', exportLog);
 
