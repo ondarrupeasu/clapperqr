@@ -92,7 +92,8 @@
   .log-table{ border-collapse:collapse; font-family:var(--mono); font-size:12px; }
   .log-table th{ background:#17181a; color:var(--fg-dim); font-weight:600; letter-spacing:.08em;
     padding:7px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
-  .log-table td{ padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; color:var(--fg); }
+  .log-table td{ padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; color:var(--fg); vertical-align:top; }
+  .log-table th{ vertical-align:top; }
   .log-fixed-wrap .log-table td{ background:#0b0b0c; }
   .log-fixed-wrap .log-table tr.row-buena td{ color:var(--accent-good); background:#0b0b0c; }
   .log-fixed-wrap .log-table tr.row-mala  td{ color:var(--accent-bad);  background:#0b0b0c; }
@@ -3547,10 +3548,27 @@ document.getElementById('btn-publicar').addEventListener('click', publicar);
    El avance de Toma NO se aplica aqui (para soportar repetir la cuenta
    atras varias veces sobre la misma toma, p.ej. "segundo chac"); queda
    marcado como pendiente y se aplica una sola vez al volver a Editar. ---- */
+/* Inserta o ACTUALIZA la entrada del log para la toma actual (misma clave
+   cam+card+sc+sh+tk). Así, repetir la cuenta atrás sobre la misma toma NO
+   crea filas duplicadas: hay una sola fila por toma. */
+function upsertLogEntry(entry){
+  const key = (e)=> takenKey(e.cam, e.card, e.sc, e.sh, e.tk);
+  const idx = state.log.findIndex(e => key(e) === key(entry));
+  if(idx >= 0){
+    const prev = state.log[idx];
+    const merged = Object.assign({}, prev, entry, {ts: prev.ts});
+    if(!entry.clap_ts && prev.clap_ts) merged.clap_ts = prev.clap_ts;  // no perder el clap real
+    state.log[idx] = merged;
+  } else {
+    state.log.push(entry);
+    state.sessionTakeCount = (state.sessionTakeCount || 0) + 1;
+  }
+}
+
 function confirmRoll(clapPayload){
   const goodToUse = state.pendingGood || '';
 
-  state.log.push({
+  upsertLogEntry({
     ts: new Date().toISOString(),
     clap_ts: clapPayload ? clapPayload.ts : '',
     sc: state.sc, sh: state.sh, tk: state.tk,
@@ -3565,7 +3583,6 @@ function confirmRoll(clapPayload){
     state.lastGoodTake = `${state.sc}-${state.sh}-${state.tk}`;
   }
   state.lastTakeNumber = state.tk;
-  state.sessionTakeCount = (state.sessionTakeCount || 0) + 1;
   state.pendingAdvance = true;
   state.dirty = false;              // la toma queda registrada en el log
 
@@ -3856,18 +3873,6 @@ function buildCSV(){
   lines.push(cols.join(','));
   const rows = state.log.slice();
 
-  if(state.lastTakeNumber && state.goodTag != null){
-    rows.push({
-      ts: new Date().toISOString(),
-      clap_ts: '',
-      sc: state.sc, sh: state.sh, tk: state.lastTakeNumber,
-      cam: state.cam, card: state.card,
-      int: state.int, dn: state.dn,
-      toma_buena: true,
-      good_enviado: takenKey(state.cam, state.card, state.sc, state.sh, state.lastTakeNumber)
-    });
-  }
-
   rows.forEach(row=>{
     lines.push(cols.map(c=>{
       let v = row[c];
@@ -3883,9 +3888,9 @@ function buildCSV(){
    Si ya existe una entrada para esta toma (sc-sh-tk-cam-card, p.ej.
    porque se hizo confirmRoll), se actualiza en lugar de duplicarla. ---- */
 function saveCurrentTake(){
-  const entry = {
+  // Sin clap_ts: upsertLogEntry conserva el clap real si ya lo hubo.
+  upsertLogEntry({
     ts: new Date().toISOString(),
-    clap_ts: '',
     sc: state.sc, sh: state.sh, tk: state.tk,
     cam: state.cam, card: state.card,
     int: state.int, dn: state.dn,
@@ -3893,17 +3898,7 @@ function saveCurrentTake(){
     toma_buena: state.goodTag,
     notes: state.noteText || '',
     good_enviado: state.goodTag === 'buena' ? takenKey(state.cam, state.card, state.sc, state.sh, state.tk) : (state.goodTag === 'mala' ? 'mala' : '')
-  };
-
-  const key = (e)=> takenKey(e.cam, e.card, e.sc, e.sh, e.tk);
-  const idx = state.log.findIndex(e => key(e) === key(entry));
-
-  if(idx >= 0){
-    state.log[idx] = Object.assign({}, state.log[idx], entry, {ts: state.log[idx].ts});
-  } else {
-    state.log.push(entry);
-    state.sessionTakeCount = (state.sessionTakeCount || 0) + 1;
-  }
+  });
 
   if(state.goodTag === 'buena'){
     state.lastGoodTake = `${state.sc}-${state.sh}-${state.tk}`;
@@ -3982,6 +3977,18 @@ function renderLog(){
 
   tbodyFixed.innerHTML  = rowsFixed.join('');
   tbodyScroll.innerHTML = rowsScroll.join('');
+
+  // Igualar la altura de cada fila entre las dos tablas: una nota de varias
+  // líneas hace la fila de la derecha más alta y, sin esto, se desalinean.
+  const fRows = tbodyFixed.querySelectorAll('tr');
+  const sRows = tbodyScroll.querySelectorAll('tr');
+  const n = Math.min(fRows.length, sRows.length);
+  for(let i=0; i<n; i++){ fRows[i].style.height = 'auto'; sRows[i].style.height = 'auto'; }
+  for(let i=0; i<n; i++){
+    const h = Math.max(fRows[i].offsetHeight, sRows[i].offsetHeight);
+    fRows[i].style.height = h + 'px';
+    sRows[i].style.height = h + 'px';
+  }
 
   // sincronizar scroll vertical entre las dos tablas
   if(!fixedWrap._logScrollBound){
