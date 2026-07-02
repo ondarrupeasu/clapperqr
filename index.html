@@ -3610,7 +3610,10 @@ document.getElementById('btn-edit-icon').addEventListener('click', ()=>{
 
 /* ---- gestos: swipe (1 dedo) y pulsacion larga (2-3 dedos) ---- */
 let touchStartX = 0, touchStartY = 0, swipeCandidate = false;
+let touchStartTarget = null;
 let longPressTimer = null, longPressFired = false;
+// ¿el toque cae sobre un control (botón, icono…)? Entonces NO es "tap de fondo".
+function _isControl(el){ return !!(el && el.closest && el.closest('button, .icon-btn, a, input, textarea, select')); }
 
 function handleLongPressStart(e){
   if(e.touches.length >= 2 && !longPressTimer && !longPressFired){
@@ -3638,6 +3641,7 @@ displayEl.addEventListener('touchstart', (e)=>{
   if(e.touches.length === 1){
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    touchStartTarget = e.target;
     swipeCandidate = true;
   } else {
     swipeCandidate = false;
@@ -3657,9 +3661,11 @@ displayEl.addEventListener('touchend', (e)=>{
     if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){
       // el swipe ya no cambia de vista: la vista QR solo se muestra
       // automaticamente tras el flash, con su propia secuencia
-    } else if(Math.abs(dx) < 20 && Math.abs(dy) < 20 && state.sub === 'data' && !longPressFired){
-      // Tap de un dedo en la vista de datos → alternar modo negativo.
-      // (La claqueta se dispara con long-press de dos dedos, no colisiona.)
+    } else if(Math.abs(dx) < 20 && Math.abs(dy) < 20 && state.sub === 'data' && !longPressFired
+              && !_isControl(touchStartTarget) && !_isControl(e.target)){
+      // Tap de un dedo en el FONDO de la vista de datos → alternar modo negativo.
+      // Se excluyen los toques sobre botones (p.ej. el ✎ de volver a editar),
+      // que antes invertían el fondo sin querer al pulsarlos.
       state.negativeData = !state.negativeData;
       saveState();
       applyNegative();
