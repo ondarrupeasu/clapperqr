@@ -3126,7 +3126,7 @@ function applyI18n(){
     el.placeholder = t(el.dataset.i18nPh);
   });
   // remapear state.dn al valor del idioma activo
-  const dnMap = { DÍA: t('dia'), DAY: t('dia'), EGUNA: t('dia'), NOCHE: t('noche'), NIGHT: t('noche'), GAUA: t('noche') };
+  const dnMap = { DIA: t('dia'), 'DÍA': t('dia'), DAY: t('dia'), EGUNA: t('dia'), NOCHE: t('noche'), NIGHT: t('noche'), GAUA: t('noche') };
   if(dnMap[state.dn]) state.dn = dnMap[state.dn];
   setSegmented('lang', state.lang);
 }
