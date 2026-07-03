@@ -10,25 +10,33 @@ permissions:
   pages: write
   id-token: write
 
+# Un solo despliegue a la vez. Si llega uno nuevo, cancela el anterior en curso.
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    environment: github-pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-      - name: Deploy to GitHub Pages
+
+      # Reintenta el despliegue si GitHub Pages devuelve el fallo transitorio
+      # "Deployment failed, try again later." (hasta 3 intentos, 15s entre ellos).
+      - name: Deploy to GitHub Pages (con reintentos)
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: actions/deploy-pages@v4
+          attempt_limit: 3
+          attempt_delay: 15000
