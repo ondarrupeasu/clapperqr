@@ -122,7 +122,24 @@
   .cam-segmented{ height:38px; margin-top:2px; }
   .cam-segmented button{ font-weight:700; font-size:20px; padding:0; color:var(--fg); }
   .sst-edit{ background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
-    padding:8px 6px; text-align:center; }
+    padding:8px 6px; text-align:center; position:relative; }
+  /* Badge AUTO (avance automático) en la esquina de la tarjeta de Toma */
+  .auto-badge{ position:absolute; top:3px; right:3px; font-family:var(--mono); font-size:9px;
+    letter-spacing:.04em; padding:2px 5px; border-radius:5px; border:1px solid var(--border);
+    color:var(--fg-dim); background:var(--bg-panel); line-height:1; cursor:pointer; }
+  .auto-badge.on{ color:var(--accent); border-color:var(--accent); }
+  /* Modal de confirmación genérico */
+  .modal-backdrop{ position:fixed; inset:0; z-index:110; background:rgba(0,0,0,.6);
+    display:none; align-items:center; justify-content:center; }
+  .modal-backdrop.show{ display:flex; }
+  .confirm-box{ width:min(88vw,360px); background:var(--bg-panel); border:1px solid var(--border);
+    border-radius:14px; padding:18px; }
+  .confirm-msg{ color:var(--fg); font-size:15px; line-height:1.4; margin-bottom:16px;
+    text-align:center; white-space:pre-line; }
+  .confirm-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .confirm-actions button{ height:46px; border-radius:8px; font-size:14px; font-weight:700; border:1px solid var(--border); }
+  #confirm-cancel{ background:var(--bg-input); color:var(--fg); }
+  #confirm-ok{ background:var(--accent); color:#fff; border-color:var(--accent); }
   .sst-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
   .prod-field{ margin-bottom:10px; }
   .prod-field:last-child{ margin-bottom:0; }
@@ -173,10 +190,6 @@
     transition:background .12s, color .12s, border-color .12s; }
   .save-take-btn.dirty{ background:var(--accent); color:#fff; border-color:var(--accent); cursor:pointer; }
   .save-take-btn:disabled{ cursor:default; }
-  /* ---- interruptor de avance automático ---- */
-  .prod-toggle{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .prod-toggle .lbl{ margin:0; }
-  .toggle-check{ width:34px; height:20px; accent-color:var(--accent); flex:0 0 auto; cursor:pointer; }
 
   /* ---- segmentados (INT/EXT, DIA/NOCHE, SND) ---- */
   .seg-group{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
@@ -378,10 +391,6 @@
           <label class="lbl" data-i18n="dp">Dir. de fotografía</label>
           <input type="text" id="f-dp" autocomplete="off">
         </div>
-        <div class="prod-field prod-toggle">
-          <label class="lbl" for="chk-auto-advance" data-i18n="auto_avance">Avance automático de toma</label>
-          <input type="checkbox" id="chk-auto-advance" class="toggle-check" checked>
-        </div>
       </div>
     </div>
 
@@ -500,6 +509,7 @@
           </div>
         </div>
         <div class="sst-edit" data-field="tk">
+          <button id="btn-auto-advance" class="auto-badge" title="Avance automático de toma">AUTO</button>
           <div class="lbl" data-i18n="toma">Toma</div>
           <div class="val" data-val>1</div>
           <div class="row">
@@ -3063,6 +3073,9 @@ const I18N = {
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
     notas:'Notas', notas_ph:'Notas de la toma…',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
+    cancelar:'Cancelar', aceptar:'Aceptar',
+    auto_on:'¿Activar el avance automático de toma?\n\nLa toma subirá sola tras cada claqueta.',
+    auto_off:'¿Desactivar el avance automático de toma?\n\nTendrás que subir la toma a mano (modo multicámara).',
     b_cam:'CAM', b_esc:'ESC', b_fps:'FPS', b_lente:'LENTE', b_obt:'OBT', b_iso:'ISO',
     b_diaf:'DIAF', b_wb:'WB',
     toast_no_log:'No hay tomas registradas todavía',
@@ -3082,6 +3095,9 @@ const I18N = {
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
     notas:'Notes', notas_ph:'Take notes…',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
+    cancelar:'Cancel', aceptar:'OK',
+    auto_on:'Turn ON auto-advance take?\n\nThe take will increase automatically after each clap.',
+    auto_off:'Turn OFF auto-advance take?\n\nYou will advance the take manually (multi-camera mode).',
     b_cam:'CAM', b_esc:'LOC', b_fps:'FPS', b_lente:'LENS', b_obt:'SHUT', b_iso:'ISO',
     b_diaf:'APER', b_wb:'WB',
     toast_no_log:'No takes recorded yet',
@@ -3101,6 +3117,9 @@ const I18N = {
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
     notas:'Oharrak', notas_ph:'Tomaren oharrak…',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
+    cancelar:'Utzi', aceptar:'Ados',
+    auto_on:'Tomaren aurrerapen automatikoa AKTIBATU?\n\nToma bakoitzean automatikoki igoko da klaketaren ostean.',
+    auto_off:'Tomaren aurrerapen automatikoa DESAKTIBATU?\n\nToma eskuz igo beharko duzu (kamera anitzeko modua).',
     b_cam:'KAM', b_esc:'KOK', b_fps:'FPS', b_lente:'LENTE', b_obt:'OBT', b_iso:'ISO',
     b_diaf:'DIAF', b_wb:'ZB',
     toast_no_log:'Oraindik ez dago tomarik erregistratuta',
@@ -3190,7 +3209,7 @@ function renderEdit(){
   document.getElementById('f-dir').value = state.dir || '';
   document.getElementById('f-dp').value = state.dp || '';
   document.getElementById('f-note').value = state.noteText || '';
-  document.getElementById('chk-auto-advance').checked = state.autoAdvance;
+  updateAutoBadge();
 
   const goodLabel = document.getElementById('f-good-label');
   const cardFlags = document.getElementById('card-flags');
@@ -3210,6 +3229,38 @@ function updateSaveTakeBtn(){
   btn.classList.toggle('dirty', state.dirty);
   btn.textContent = state.dirty ? t('guardar_toma') : t('guardado');
 }
+
+/* Badge AUTO en la tarjeta de Toma: rojo = avance automático activado. */
+function updateAutoBadge(){
+  const b = document.getElementById('btn-auto-advance');
+  if(b) b.classList.toggle('on', !!state.autoAdvance);
+}
+
+/* ---- diálogo de confirmación genérico (Cancelar / Aceptar) ---- */
+let _confirmCb = null;
+function confirmDialog(message, onAccept){
+  const bd = document.getElementById('confirm-backdrop');
+  if(!bd){ if(onAccept) onAccept(); return; }   // sin modal: acepta directo
+  document.getElementById('confirm-msg').textContent = message;
+  document.getElementById('confirm-cancel').textContent = t('cancelar');
+  document.getElementById('confirm-ok').textContent = t('aceptar');
+  _confirmCb = onAccept;
+  bd.classList.add('show');
+}
+(function(){
+  function setup(){
+    const bd = document.getElementById('confirm-backdrop');
+    if(!bd) return;
+    const close = ()=>{ bd.classList.remove('show'); _confirmCb = null; };
+    document.getElementById('confirm-cancel').addEventListener('click', close);
+    document.getElementById('confirm-ok').addEventListener('click', ()=>{
+      const cb = _confirmCb; bd.classList.remove('show'); _confirmCb = null; if(cb) cb();
+    });
+    bd.addEventListener('click', (e)=>{ if(e.target === bd) close(); });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+  else setup();
+})();
 
 /* ---- eventos pantalla de edicion ---- */
 document.querySelectorAll('.sst-edit .step-btn').forEach(btn=>{
@@ -3292,9 +3343,16 @@ document.getElementById('f-note').addEventListener('input', e=>{
   updateSaveTakeBtn();
   saveState();
 });
-document.getElementById('chk-auto-advance').addEventListener('change', e=>{
-  state.autoAdvance = e.target.checked;
-  saveState();
+// Badge AUTO: pide confirmación antes de activar/desactivar (evita cambios
+// por accidente al pulsarlo sin querer).
+document.getElementById('btn-auto-advance').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const msg = state.autoAdvance ? t('auto_off') : t('auto_on');
+  confirmDialog(msg, ()=>{
+    state.autoAdvance = !state.autoAdvance;
+    saveState();
+    updateAutoBadge();
+  });
 });
 document.getElementById('btn-save-take-ctx').addEventListener('click', ()=>{
   if(state.dirty) saveCurrentTake();
@@ -4398,6 +4456,17 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
 });
 
 </script>
+<!-- Modal de confirmación (avance automático, etc.) -->
+<div id="confirm-backdrop" class="modal-backdrop">
+  <div class="confirm-box" role="dialog" aria-modal="true">
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-actions">
+      <button id="confirm-cancel">Cancelar</button>
+      <button id="confirm-ok">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Teclado numérico a medida (Escena/Plano/Toma) -->
 <div id="keypad-backdrop">
   <div class="keypad" role="dialog" aria-modal="true">
