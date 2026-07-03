@@ -85,7 +85,7 @@
     padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
   #shared-header .edit-inner{ padding-top:14px; padding-bottom:0; }
   #screen-edit{ padding-top:calc(130px + env(safe-area-inset-top)); }
-  #screen-log{ padding-top:calc(130px + env(safe-area-inset-top)); }
+  #screen-log{ padding-top:calc(150px + env(safe-area-inset-top)); }
   .log-table-wrap{ display:flex; flex:1; min-height:0; overflow:hidden; padding:0 14px; }
   .log-fixed-wrap{ flex-shrink:0; overflow-y:auto; overflow-x:hidden; border-right:2px solid var(--border); }
   .log-scroll-wrap{ flex:1; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
@@ -104,6 +104,7 @@
   .th-sort:hover{ color:var(--fg); }
   .sort-arrow{ margin-left:4px; font-size:9px; }
   .log-empty{ text-align:center; color:var(--fg-dim); font-family:var(--mono); font-size:13px; padding:40px 0; }
+  .log-hint{ text-align:center; color:var(--fg-dim); font-family:var(--mono); font-size:11px; letter-spacing:.04em; margin:0 0 8px; }
 
   .card{ background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; }
   .card h2{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
@@ -148,6 +149,27 @@
   .export-opt.export-all{ background:var(--accent); color:#fff; border-color:var(--accent); }
   .export-cancel-btn{ width:100%; height:44px; border-radius:8px; font-size:14px; font-weight:700;
     border:1px solid var(--border); background:transparent; color:var(--fg-dim); cursor:pointer; }
+  /* ---- editor de toma del informe ---- */
+  .logedit-box{ width:min(94vw,430px); max-height:90vh; display:flex; flex-direction:column; }
+  .logedit-body{ overflow:auto; -webkit-overflow-scrolling:touch; }
+  .le-goodrow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  .le-gbtn{ height:46px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input);
+    color:var(--fg-dim); font-family:var(--mono); font-weight:700; font-size:14px; letter-spacing:.06em; cursor:pointer; }
+  .le-gbtn.good.active{ background:var(--accent-good); color:#0a0a0a; }
+  .le-gbtn.bad.active{ background:var(--accent-bad); color:#0a0a0a; }
+  .le-notes{ width:100%; min-height:56px; box-sizing:border-box; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:9px; color:var(--fg); font-family:var(--sans); font-size:14px; margin-bottom:12px; resize:vertical; }
+  .le-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px 10px; }
+  .le-grid label{ display:flex; flex-direction:column; gap:3px; font-family:var(--mono); font-size:9px;
+    letter-spacing:.1em; color:var(--fg-dim); text-transform:uppercase; }
+  .le-grid input, .le-grid select{ width:100%; box-sizing:border-box; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:6px; padding:8px; color:var(--fg); font-family:var(--sans); font-size:14px; }
+  .le-actions{ display:grid; grid-template-columns:auto 1fr 1fr; gap:8px; margin-top:14px; }
+  .le-actions button{ height:46px; border-radius:8px; font-weight:700; font-size:13px; border:1px solid var(--border); cursor:pointer; }
+  #le-delete{ background:transparent; color:var(--accent-bad); border-color:var(--accent-bad); padding:0 12px; }
+  #le-cancel{ background:var(--bg-input); color:var(--fg); }
+  #le-save{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .log-table tbody tr{ cursor:pointer; }
   /* ---- lista de ópticas ---- */
   .lens-pick-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
   .lens-pick-row .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; flex:0 0 auto; }
@@ -607,6 +629,8 @@
 <!-- ================= PANTALLA HISTÓRICO ================= -->
 <div id="screen-log" class="screen">
 <div class="log-wrap-inner">
+
+  <p class="log-hint" id="log-hint" data-i18n="log_hint">Toca una toma para marcarla o corregir sus datos.</p>
 
   <div class="log-table-wrap">
     <div class="log-fixed-wrap" id="log-fixed-wrap">
@@ -3167,6 +3191,7 @@ const I18N = {
     ajustes:'Ajustes',
     lente:'Lente (mm)', obturador:'Obturador', diafragma:'Diafragma', wb:'Balance de blancos (K)',
     esferica:'Esférica', anamorfica:'Anamórfica', squeeze:'Squeeze',
+    editar_toma:'Editar toma', borrar_toma:'Borrar', buena:'Buena', mala:'Mala', intext:'Int/Ext', dianoche:'Día/Noche', valor:'Valor', grados:'grados', toma_actualizada:'Toma actualizada', toma_borrada:'Toma borrada', borrar_confirm:'¿Borrar esta toma del informe?', log_hint:'Toca una toma para marcarla o corregir sus datos.',
     optica:'Óptica', manual:'Manual', opticas_titulo:'Ópticas de la producción', anadir_optica:'+ Añadir óptica', cerrar:'Cerrar', nombre:'Nombre', focal:'Focal (mm)', tipo:'Tipo', guardar:'Guardar',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
@@ -3191,6 +3216,7 @@ const I18N = {
     ajustes:'Settings',
     lente:'Lens (mm)', obturador:'Shutter', diafragma:'Aperture', wb:'White balance (K)',
     esferica:'Spherical', anamorfica:'Anamorphic', squeeze:'Squeeze',
+    editar_toma:'Edit take', borrar_toma:'Delete', buena:'Good', mala:'Bad', intext:'Int/Ext', dianoche:'Day/Night', valor:'Value', grados:'degrees', toma_actualizada:'Take updated', toma_borrada:'Take deleted', borrar_confirm:'Delete this take from the report?', log_hint:'Tap a take to flag it or fix its data.',
     optica:'Lens', manual:'Manual', opticas_titulo:'Production lenses', anadir_optica:'+ Add lens', cerrar:'Close', nombre:'Name', focal:'Focal length (mm)', tipo:'Type', guardar:'Save',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
@@ -3215,6 +3241,7 @@ const I18N = {
     ajustes:'Ezarpenak',
     lente:'Lentea (mm)', obturador:'Obturadorea', diafragma:'Diafragma', wb:'Zuri balantzea (K)',
     esferica:'Esferikoa', anamorfica:'Anamorfikoa', squeeze:'Squeeze',
+    editar_toma:'Editatu toma', borrar_toma:'Ezabatu', buena:'Ona', mala:'Txarra', intext:'Barn/Kanp', dianoche:'Eguna/Gaua', valor:'Balioa', grados:'graduak', toma_actualizada:'Toma eguneratua', toma_borrada:'Toma ezabatua', borrar_confirm:'Toma hau informetik ezabatu?', log_hint:'Ukitu toma bat markatzeko edo datuak zuzentzeko.',
     optica:'Optika', manual:'Eskuz', opticas_titulo:'Ekoizpenaren optikak', anadir_optica:'+ Gehitu optika', cerrar:'Itxi', nombre:'Izena', focal:'Fokua (mm)', tipo:'Mota', guardar:'Gorde',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
@@ -4286,12 +4313,14 @@ function renderLog(){
   scrollWrap.style.display = '';
   arrow.textContent = logSortAsc ? '↑' : '↓';
 
-  const entries = logSortAsc ? [...state.log] : [...state.log].reverse();
+  // Indexar para poder editar la fila correcta aunque se muestre invertido.
+  const indexed = state.log.map((e, i) => ({ e, i }));
+  const entries = logSortAsc ? indexed : [...indexed].reverse();
 
   const rowsFixed = [];
   const rowsScroll = [];
 
-  entries.forEach(e => {
+  entries.forEach(({ e, i }) => {
     const hora = e.clap_ts ? e.clap_ts.slice(11,19) : (e.ts ? e.ts.slice(11,19) : '—');
     const good = e.toma_buena === 'buena' ? '✓' : e.toma_buena === 'mala' ? '✗' : '—';
     const cls  = e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '';
@@ -4304,7 +4333,7 @@ function renderLog(){
     const wb   = e.wb   != null ? e.wb + 'K' : '—';
     const notes = (e.notes || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    rowsFixed.push(`<tr class="${cls}">
+    rowsFixed.push(`<tr class="${cls}" data-logidx="${i}">
       <td>${hora}</td>
       <td>${e.sc ?? '—'}</td>
       <td>${e.sh ?? '—'}</td>
@@ -4312,7 +4341,7 @@ function renderLog(){
       <td>${good}</td>
     </tr>`);
 
-    rowsScroll.push(`<tr class="${cls}">
+    rowsScroll.push(`<tr class="${cls}" data-logidx="${i}">
       <td>${e.cam ?? '—'}</td>
       <td>${e.card != null ? String(e.card).padStart(2,'0') : '—'}</td>
       <td>${e.int ?? '—'}</td>
@@ -4348,7 +4377,123 @@ function renderLog(){
     fixedWrap.addEventListener('scroll', ()=>{ scrollWrap.scrollTop = fixedWrap.scrollTop; });
     scrollWrap.addEventListener('scroll', ()=>{ fixedWrap.scrollTop = scrollWrap.scrollTop; });
   }
+
+  // tocar una fila (en cualquiera de las dos tablas) abre el editor de esa toma
+  [...tbodyFixed.querySelectorAll('tr'), ...tbodyScroll.querySelectorAll('tr')].forEach(tr=>{
+    tr.addEventListener('click', ()=> openLogEdit(parseInt(tr.dataset.logidx, 10)));
+  });
 }
+
+/* ---- editor de una toma ya registrada (director marca buena/mala días
+   después, o corregir un dato mal metido). Edita in situ la fila del log. ---- */
+let logEditIdx = null;
+let leGood = null;
+function updateLeGoodBtns(){
+  document.getElementById('le-good').classList.toggle('active', leGood === 'buena');
+  document.getElementById('le-bad').classList.toggle('active', leGood === 'mala');
+}
+function openLogEdit(idx){
+  const e = state.log[idx];
+  if(!e) return;
+  logEditIdx = idx;
+  leGood = e.toma_buena || null;
+  const $ = id => document.getElementById(id);
+  const fpsSel = $('le-fps');
+  if(!fpsSel._built){ fpsSel._built = true; FPS_LIST.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=formatFps(v); fpsSel.appendChild(o); }); }
+  $('le-sc').value = e.sc ?? '';
+  $('le-sh').value = e.sh ?? '';
+  $('le-tk').value = e.tk ?? '';
+  $('le-cam').value = e.cam || 'A';
+  $('le-card').value = e.card ?? 1;
+  $('le-clip').value = e.clip || '';
+  $('le-int').value = (e.int === 'EXT') ? 'EXT' : 'INT';
+  $('le-dn').value = /noc|night|gau/i.test(e.dn || '') ? 'NOCHE' : 'DIA';
+  $('le-fps').value = String(e.fps ?? 24);
+  $('le-mm').value = e.mm ?? '';
+  $('le-lensname').value = e.lensName || '';
+  $('le-lenstype').value = e.lensType || 'sph';
+  $('le-squeeze').value = String(e.squeeze || 2);
+  $('le-iso').value = e.iso ?? '';
+  const shtMode = e.shtMode || 'frac';
+  $('le-shtmode').value = shtMode;
+  $('le-shtval').value = shtMode === 'deg' ? (e.shtDeg ?? 180) : (e.sht ?? 50);
+  $('le-apmode').value = e.apMode || 'f';
+  $('le-ap').value = e.ap ?? '';
+  $('le-wb').value = e.wb ?? '';
+  $('le-notes').value = e.notes || '';
+  updateLeGoodBtns();
+  $('logedit-title').textContent = t('editar_toma') + '  ·  ' + (e.sc ?? '—') + '/' + (e.sh ?? '—') + '/T' + (e.tk ?? '—') + (e.cam ? '  ' + e.cam : '');
+  $('logedit-backdrop').classList.add('show');
+}
+function closeLogEdit(){ document.getElementById('logedit-backdrop').classList.remove('show'); logEditIdx = null; }
+function recomputeLastGood(){
+  const goods = state.log.filter(x => x.toma_buena === 'buena');
+  const g = goods[goods.length - 1];
+  state.lastGoodTake = g ? `${g.sc}-${g.sh}-${g.tk}` : '';
+}
+function saveLogEdit(){
+  if(logEditIdx == null) return;
+  const $ = id => document.getElementById(id);
+  const intOr = (v, d)=>{ const n = parseInt(v, 10); return isNaN(n) ? d : n; };
+  const numOr = (v, d)=>{ const n = parseFloat(v); return isNaN(n) ? d : n; };
+  const e = Object.assign({}, state.log[logEditIdx]);
+  e.sc = intOr($('le-sc').value, e.sc);
+  e.sh = intOr($('le-sh').value, e.sh);
+  e.tk = intOr($('le-tk').value, e.tk);
+  e.cam = $('le-cam').value;
+  e.card = intOr($('le-card').value, e.card);
+  e.clip = $('le-clip').value.trim();
+  e.int = $('le-int').value;
+  e.dn = $('le-dn').value === 'NOCHE' ? t('noche') : t('dia');
+  e.fps = numOr($('le-fps').value, e.fps);
+  e.mm = intOr($('le-mm').value, e.mm);
+  e.lensName = $('le-lensname').value.trim();
+  e.lensType = $('le-lenstype').value;
+  e.squeeze = numOr($('le-squeeze').value, e.squeeze);
+  e.iso = intOr($('le-iso').value, e.iso);
+  e.shtMode = $('le-shtmode').value;
+  const shtv = numOr($('le-shtval').value, null);
+  if(shtv != null){ if(e.shtMode === 'deg') e.shtDeg = shtv; else e.sht = shtv; }
+  e.apMode = $('le-apmode').value;
+  e.ap = numOr($('le-ap').value, e.ap);
+  e.wb = intOr($('le-wb').value, e.wb);
+  e.notes = $('le-notes').value;
+  e.toma_buena = leGood;
+  const key = takenKey(e.cam, e.card, e.sc, e.sh, e.tk);
+  e.good_enviado = leGood === 'buena' ? key : (leGood === 'mala' ? 'mala' : '');
+  state.log[logEditIdx] = e;
+  recomputeLastGood();
+  saveState();
+  renderLog();
+  closeLogEdit();
+  showToast(t('toma_actualizada'));
+}
+function deleteLogEntry(){
+  if(logEditIdx == null) return;
+  if(!confirm(t('borrar_confirm'))) return;
+  state.log.splice(logEditIdx, 1);
+  if(state.sessionTakeCount) state.sessionTakeCount = Math.max(0, state.sessionTakeCount - 1);
+  recomputeLastGood();
+  saveState();
+  renderLog();
+  closeLogEdit();
+  showToast(t('toma_borrada'));
+}
+// El HTML del modal (#logedit-backdrop) está más abajo en el documento que
+// este script, así que hay que enganchar sus botones cuando ya exista el DOM;
+// si no, getElementById devuelve null y rompe el resto del script.
+(function(){
+  function setup(){
+    document.getElementById('le-good').addEventListener('click', ()=>{ leGood = leGood === 'buena' ? null : 'buena'; updateLeGoodBtns(); });
+    document.getElementById('le-bad').addEventListener('click',  ()=>{ leGood = leGood === 'mala'  ? null : 'mala';  updateLeGoodBtns(); });
+    document.getElementById('le-save').addEventListener('click', saveLogEdit);
+    document.getElementById('le-cancel').addEventListener('click', closeLogEdit);
+    document.getElementById('le-delete').addEventListener('click', deleteLogEntry);
+    document.getElementById('logedit-backdrop').addEventListener('click', (ev)=>{ if(ev.target.id === 'logedit-backdrop') closeLogEdit(); });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+  else setup();
+})();
 
 document.getElementById('btn-calibrate').addEventListener('click', ()=>{
   switchScreen(state.view === 'calibrate' ? 'edit' : 'calibrate');
@@ -4847,6 +4992,46 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
       <div class="prod-field" id="lensf-sq-field" style="display:none;"><label class="lbl" data-i18n="squeeze">Squeeze</label>
         <select id="lensf-sq"><option value="1.33">1.33x</option><option value="1.5">1.5x</option><option value="1.8">1.8x</option><option value="2" selected>2x</option></select></div>
       <div class="confirm-actions"><button id="lensf-cancel" data-i18n="cancelar">Cancelar</button><button id="lensf-save" data-i18n="guardar">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Editor de toma del informe (tocar una fila) -->
+<div id="logedit-backdrop" class="modal-backdrop">
+  <div class="confirm-box logedit-box" role="dialog" aria-modal="true">
+    <div class="confirm-msg" id="logedit-title" data-i18n="editar_toma">Editar toma</div>
+    <div class="logedit-body">
+      <div class="le-goodrow">
+        <button id="le-good" class="le-gbtn good">✓ <span data-i18n="buena">Buena</span></button>
+        <button id="le-bad" class="le-gbtn bad">✗ <span data-i18n="mala">Mala</span></button>
+      </div>
+      <textarea id="le-notes" class="le-notes" data-i18n-ph="notas_ph" placeholder="Notas de la toma…"></textarea>
+      <div class="le-grid">
+        <label><span data-i18n="escena">Escena</span><input id="le-sc" type="number" min="0" inputmode="numeric"></label>
+        <label><span data-i18n="plano">Plano</span><input id="le-sh" type="number" min="0" inputmode="numeric"></label>
+        <label><span data-i18n="toma">Toma</span><input id="le-tk" type="number" min="0" inputmode="numeric"></label>
+        <label><span data-i18n="camara">Cámara</span><select id="le-cam"><option>A</option><option>B</option><option>C</option></select></label>
+        <label><span data-i18n="tarjeta">Tarjeta</span><input id="le-card" type="number" min="1" inputmode="numeric"></label>
+        <label><span data-i18n="nombre_clip">Clip</span><input id="le-clip" type="text"></label>
+        <label><span data-i18n="intext">Int/Ext</span><select id="le-int"><option>INT</option><option>EXT</option></select></label>
+        <label><span data-i18n="dianoche">Día/Noche</span><select id="le-dn"><option value="DIA" data-i18n="dia">DÍA</option><option value="NOCHE" data-i18n="noche">NOCHE</option></select></label>
+        <label>FPS<select id="le-fps"></select></label>
+        <label><span data-i18n="lente">Lente</span><input id="le-mm" type="number" min="1" inputmode="numeric"></label>
+        <label><span data-i18n="optica">Óptica</span><input id="le-lensname" type="text" placeholder="—"></label>
+        <label><span data-i18n="tipo">Tipo</span><select id="le-lenstype"><option value="sph" data-i18n="esferica">Esférica</option><option value="ana" data-i18n="anamorfica">Anamórfica</option></select></label>
+        <label><span data-i18n="squeeze">Squeeze</span><select id="le-squeeze"><option value="1.33">1.33x</option><option value="1.5">1.5x</option><option value="1.8">1.8x</option><option value="2">2x</option></select></label>
+        <label>ISO<input id="le-iso" type="number" inputmode="numeric"></label>
+        <label><span data-i18n="obturador">Obturador</span><select id="le-shtmode"><option value="deg" data-i18n="grados">grados</option><option value="frac">1/x</option></select></label>
+        <label><span data-i18n="valor">Valor</span><input id="le-shtval" type="number" inputmode="decimal"></label>
+        <label><span data-i18n="diafragma">Diafragma</span><select id="le-apmode"><option value="T">T/</option><option value="f">f/</option></select></label>
+        <label><span data-i18n="valor">Valor</span><input id="le-ap" type="number" step="0.1" inputmode="decimal"></label>
+        <label><span data-i18n="wb">WB</span><input id="le-wb" type="number" inputmode="numeric"></label>
+      </div>
+    </div>
+    <div class="le-actions">
+      <button id="le-delete" data-i18n="borrar_toma">Borrar</button>
+      <button id="le-cancel" data-i18n="cancelar">Cancelar</button>
+      <button id="le-save" data-i18n="guardar">Guardar</button>
     </div>
   </div>
 </div>
