@@ -272,6 +272,7 @@
     font-family:var(--mono); font-size:12px; letter-spacing:.08em; padding:10px 4px; }
   .segmented button + button{ border-left:1px solid var(--border); }
   .segmented button.active{ background:var(--accent); color:#1a0e08; font-weight:700; }
+  .dn-seg button{ font-size:11px; letter-spacing:.01em; padding:10px 2px; }
   .lang-switch{ flex:0 0 auto; width:auto; }
   .lang-switch button{ padding:8px 9px; font-size:11px; }
 
@@ -555,9 +556,13 @@
             <button data-value="INT">INT</button>
             <button data-value="EXT">EXT</button>
           </div>
-          <div class="segmented" data-field="dn">
+        </div>
+        <div class="seg-group">
+          <div class="segmented dn-seg" data-field="dn">
             <button data-value="DIA" data-i18n="dia">DÍA</button>
             <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
+            <button data-value="AMANECER" data-i18n="amanecer">AMANECER</button>
+            <button data-value="ANOCHECER" data-i18n="anochecer">ANOCHECER</button>
           </div>
         </div>
         <div class="seg-group lens-row">
@@ -3086,7 +3091,7 @@ const DEFAULT_STATE = {
   cam:'A', card:1,
   cams:['A'],                // cámaras seleccionadas para el clap simultáneo (multicámara)
   clipNos:{A:1, B:1, C:1},   // siguiente nº de clip por cámara (reel = cam+tarjeta)
-  clipFormat:'arri',         // formato del nombre de clip (preset por marca/cámara)
+  clipFormats:{A:'arri', B:'arri', C:'arri'}, // formato del nombre de clip POR CÁMARA (mezclar ARRI + Blackmagic…)
   camNames:{A:'', B:'', C:''}, // nombre de cámara opcional (sustituye la letra en el clip, p.ej. "Ondarruphone")
   collapsed:{},              // estado abierto/cerrado de las tarjetas desplegables
   sc:1, sh:1, tk:1,
@@ -3112,6 +3117,10 @@ function loadState(){
   // anidados para no mutar DEFAULT_STATE.
   s.clipNos = Object.assign({A:1, B:1, C:1}, s.clipNos);
   s.camNames = Object.assign({A:'', B:'', C:''}, s.camNames);
+  // formato de clip por cámara (migra el antiguo clipFormat global si existía)
+  const _fmtDef = s.clipFormat || 'arri';
+  s.clipFormats = Object.assign({A:_fmtDef, B:_fmtDef, C:_fmtDef}, s.clipFormats);
+  delete s.clipFormat;
   // multicámara: normalizar la lista de cámaras seleccionadas (orden A,B,C; nunca vacía)
   const CAMS = ['A','B','C'];
   let cams = Array.isArray(s.cams) ? s.cams.filter(c => CAMS.includes(c)) : [];
@@ -3206,7 +3215,7 @@ const I18N = {
     title:'CLAPPERQR',
     escena:'Escena', plano:'Plano', toma:'Toma',
     n_tomas:'tomas', ultima_buena:'Última toma buena', sin_tomas_buenas:'—',
-    dia:'DÍA', noche:'NOCHE',
+    dia:'DÍA', noche:'NOCHE', amanecer:'AMANECER', anochecer:'ANOCHECER',
     ajustes:'Ajustes',
     lente:'Lente (mm)', obturador:'Obturador', diafragma:'Diafragma', wb:'Balance de blancos (K)',
     esferica:'Esférica', anamorfica:'Anamórfica', squeeze:'Squeeze',
@@ -3233,7 +3242,7 @@ const I18N = {
     title:'CLAPPERQR',
     escena:'Scene', plano:'Shot', toma:'Take',
     n_tomas:'takes', ultima_buena:'Last good take', sin_tomas_buenas:'—',
-    dia:'DAY', noche:'NIGHT',
+    dia:'DAY', noche:'NIGHT', amanecer:'DAWN', anochecer:'DUSK',
     ajustes:'Settings',
     lente:'Lens (mm)', obturador:'Shutter', diafragma:'Aperture', wb:'White balance (K)',
     esferica:'Spherical', anamorfica:'Anamorphic', squeeze:'Squeeze',
@@ -3260,7 +3269,7 @@ const I18N = {
     title:'CLAPPERQR',
     escena:'Eszena', plano:'Planoa', toma:'Toma',
     n_tomas:'toma', ultima_buena:'Azken toma ona', sin_tomas_buenas:'—',
-    dia:'EGUNA', noche:'GAUA',
+    dia:'EGUNA', noche:'GAUA', amanecer:'EGUNSENTIA', anochecer:'ILUNABARRA',
     ajustes:'Ezarpenak',
     lente:'Lentea (mm)', obturador:'Obturadorea', diafragma:'Diafragma', wb:'Zuri balantzea (K)',
     esferica:'Esferikoa', anamorfica:'Anamorfikoa', squeeze:'Squeeze',
@@ -3292,7 +3301,7 @@ function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     el.textContent = t(el.dataset.i18n);
     // si el elemento es un botón de segmented, sincronizar data-value con la traducción
-    if(el.dataset.i18n === 'dia' || el.dataset.i18n === 'noche'){
+    if(['dia','noche','amanecer','anochecer'].includes(el.dataset.i18n)){
       el.dataset.value = el.textContent;
     }
   });
@@ -3300,7 +3309,12 @@ function applyI18n(){
     el.placeholder = t(el.dataset.i18nPh);
   });
   // remapear state.dn al valor del idioma activo
-  const dnMap = { DIA: t('dia'), 'DÍA': t('dia'), DAY: t('dia'), EGUNA: t('dia'), NOCHE: t('noche'), NIGHT: t('noche'), GAUA: t('noche') };
+  const dnMap = {
+    DIA: t('dia'), 'DÍA': t('dia'), DAY: t('dia'), EGUNA: t('dia'),
+    NOCHE: t('noche'), NIGHT: t('noche'), GAUA: t('noche'),
+    AMANECER: t('amanecer'), DAWN: t('amanecer'), EGUNSENTIA: t('amanecer'),
+    ANOCHECER: t('anochecer'), DUSK: t('anochecer'), ILUNABARRA: t('anochecer'),
+  };
   if(dnMap[state.dn]) state.dn = dnMap[state.dn];
   setSegmented('lang', state.lang);
 }
@@ -3376,7 +3390,7 @@ function renderEdit(){
   const nCams = getCams().length;
   document.getElementById('clip-name').textContent = formatClipName() + (nCams > 1 ? '  +' + (nCams - 1) : '');
   const cfSel = document.getElementById('clip-format');
-  if(cfSel) cfSel.value = state.clipFormat || 'arri';
+  if(cfSel) cfSel.value = (state.clipFormats && state.clipFormats[state.cam]) || 'arri';
   const cnInp = document.getElementById('cam-name');
   if(cnInp && document.activeElement !== cnInp){
     cnInp.value = (state.camNames && state.camNames[state.cam]) || '';
@@ -3439,7 +3453,8 @@ function formatClipName(cam){
   const clip = (state.clipNos && state.clipNos[cam]) || 1;
   // prefijo = nombre de cámara si se ha puesto (p.ej. "Ondarruphone"), si no la letra
   const prefix = (state.camNames && state.camNames[cam]) ? state.camNames[cam] : cam;
-  const fmt = CLIP_FORMATS[state.clipFormat] || CLIP_FORMATS.arri;
+  const fmtId = (state.clipFormats && state.clipFormats[cam]) || 'arri';
+  const fmt = CLIP_FORMATS[fmtId] || CLIP_FORMATS.arri;
   return fmt.fn(prefix, reel, clip);
 }
 // Poblar el selector de formato de clip y reaccionar al cambio.
@@ -3450,7 +3465,10 @@ function formatClipName(cam){
     const o = document.createElement('option'); o.value = id;
     o.dataset.i18n = f.i18n; o.textContent = t(f.i18n); sel.appendChild(o);
   });
-  sel.addEventListener('change', ()=>{ state.clipFormat = sel.value; renderEdit(); saveState(); });
+  sel.addEventListener('change', ()=>{
+    if(!state.clipFormats) state.clipFormats = {A:'arri', B:'arri', C:'arri'};
+    state.clipFormats[state.cam] = sel.value; renderEdit(); saveState();
+  });
   const cn = document.getElementById('cam-name');
   if(cn) cn.addEventListener('input', ()=>{
     if(!state.camNames) state.camNames = {A:'', B:'', C:''};
@@ -4825,6 +4843,8 @@ function resetSession(){
   localStorage.removeItem('claquetaState');
   state = Object.assign({}, DEFAULT_STATE);
   state.clipNos = {A:1, B:1, C:1};   // copia propia (no compartir con DEFAULT_STATE)
+  state.clipFormats = {A:'arri', B:'arri', C:'arri'};
+  state.camNames = {A:'', B:'', C:''};
   state.cams = ['A']; state.cam = 'A';
   state.log = [];
   state.lang = lang;
