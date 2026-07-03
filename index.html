@@ -435,81 +435,6 @@
       </div>
     </div>
 
-    <!-- Ajustes técnicos (desplegable: se tocan al cambiar de plano, no por toma) -->
-    <div class="card collapsed" id="card-ajustes">
-      <h2 class="collapsible" data-toggle="card-ajustes"><span data-i18n="ajustes">Ajustes técnicos</span><span class="chev">▾</span></h2>
-      <div class="card-body">
-      <div class="stepper-grid">
-        <div class="stepper" data-field="fps">
-          <div class="lbl">FPS</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>25</div>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="stepper" data-field="mm">
-          <div class="lbl" data-i18n="lente">Lente (mm)</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>35</div>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="stepper" data-field="sht">
-          <div class="lbl" data-i18n="obturador">Obturador 1/x</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>50</div>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="stepper" data-field="iso">
-          <div class="lbl">ISO</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>800</div>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="stepper" data-field="ap">
-          <div class="lbl" data-i18n="diafragma">Diafragma f/</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>2.8</div>
-            <button class="step-btn" data-dir="1">+</button>
-          </div>
-        </div>
-        <div class="stepper" data-field="wb">
-          <div class="lbl" data-i18n="wb">Balance de blancos (K)</div>
-          <div class="row">
-            <button class="step-btn" data-dir="-1">&minus;</button>
-            <div class="val" data-val>
-              <span class="wb-display">5600</span>
-              <input class="wb-input" type="number" step="50" min="1500" max="10000" style="display:none">
-            </div>
-            <button class="step-btn" data-dir="1">+</button>
-            <button class="wb-toggle" id="wb-toggle" title="Entrada manual en Kelvin">K</button>
-          </div>
-        </div>
-      </div>
-      </div>
-    </div>
-
-    <!-- INT/EXT, DIA/NOCHE -->
-    <div class="card">
-      <div class="seg-group">
-        <div class="segmented" data-field="int">
-          <button data-value="INT">INT</button>
-          <button data-value="EXT">EXT</button>
-        </div>
-        <div class="segmented" data-field="dn">
-          <button data-value="DIA" data-i18n="dia">DÍA</button>
-          <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
-        </div>
-      </div>
-    </div>
-
     <div class="card">
       <div class="sst-edit-grid">
         <div class="sst-edit" data-field="sc">
@@ -552,6 +477,78 @@
       <textarea id="f-note" class="note-input" rows="2" data-i18n-ph="notas_ph"
         placeholder="Notas de la toma…"></textarea>
       <button id="btn-save-take-ctx" class="save-take-btn" disabled>✓ Guardado</button>
+    </div>
+
+    <!-- Ajustes (desplegable, al fondo): Int/Ext, Día/Noche y ajustes de cámara.
+         Se tocan al cambiar de plano, no por toma. -->
+    <div class="card collapsed" id="card-ajustes">
+      <h2 class="collapsible" data-toggle="card-ajustes"><span data-i18n="ajustes">Ajustes</span><span class="chev">▾</span></h2>
+      <div class="card-body">
+        <div class="seg-group">
+          <div class="segmented" data-field="int">
+            <button data-value="INT">INT</button>
+            <button data-value="EXT">EXT</button>
+          </div>
+          <div class="segmented" data-field="dn">
+            <button data-value="DIA" data-i18n="dia">DÍA</button>
+            <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
+          </div>
+        </div>
+        <div class="stepper-grid" style="margin-top:8px;">
+          <div class="stepper" data-field="fps">
+            <div class="lbl">FPS</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>24</div>
+              <button class="step-btn" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="stepper" data-field="mm">
+            <div class="lbl" data-i18n="lente">Lente (mm)</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>35</div>
+              <button class="step-btn" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="stepper" data-field="sht">
+            <div class="lbl" data-i18n="obturador">Obturador 1/x</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>50</div>
+              <button class="step-btn" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="stepper" data-field="iso">
+            <div class="lbl">ISO</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>800</div>
+              <button class="step-btn" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="stepper" data-field="ap">
+            <div class="lbl" data-i18n="diafragma">Diafragma f/</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>2.8</div>
+              <button class="step-btn" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="stepper" data-field="wb">
+            <div class="lbl" data-i18n="wb">Balance de blancos (K)</div>
+            <div class="row">
+              <button class="step-btn" data-dir="-1">&minus;</button>
+              <div class="val" data-val>
+                <span class="wb-display">5600</span>
+                <input class="wb-input" type="number" step="50" min="1500" max="10000" style="display:none">
+              </div>
+              <button class="step-btn" data-dir="1">+</button>
+              <button class="wb-toggle" id="wb-toggle" title="Entrada manual en Kelvin">K</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
 
@@ -3004,7 +3001,7 @@ const DEFAULT_STATE = {
   collapsed:{},              // estado abierto/cerrado de las tarjetas desplegables
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
-  fps:25, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
+  fps:24, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
   goodTag:null, noteText:'', pendingAdvance:false,
   autoAdvance:true, dirty:false, negativeData:false,
   pendingGood:'', lastTakeNumber:null,
@@ -3100,7 +3097,7 @@ const I18N = {
     escena:'Escena', plano:'Plano', toma:'Toma',
     n_tomas:'tomas', ultima_buena:'Última toma buena', sin_tomas_buenas:'—',
     dia:'DÍA', noche:'NOCHE',
-    ajustes:'Ajustes técnicos',
+    ajustes:'Ajustes',
     lente:'Lente (mm)', obturador:'Obturador 1/x', diafragma:'Diafragma f/', wb:'Balance de blancos (K)',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
@@ -3122,7 +3119,7 @@ const I18N = {
     escena:'Scene', plano:'Shot', toma:'Take',
     n_tomas:'takes', ultima_buena:'Last good take', sin_tomas_buenas:'—',
     dia:'DAY', noche:'NIGHT',
-    ajustes:'Technical settings',
+    ajustes:'Settings',
     lente:'Lens (mm)', obturador:'Shutter 1/x', diafragma:'Aperture f/', wb:'White balance (K)',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
@@ -3144,7 +3141,7 @@ const I18N = {
     escena:'Eszena', plano:'Planoa', toma:'Toma',
     n_tomas:'toma', ultima_buena:'Azken toma ona', sin_tomas_buenas:'—',
     dia:'EGUNA', noche:'GAUA',
-    ajustes:'Ezarpen teknikoak',
+    ajustes:'Ezarpenak',
     lente:'Lentea (mm)', obturador:'Obturadorea 1/x', diafragma:'Diafragma f/', wb:'Zuri balantzea (K)',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
