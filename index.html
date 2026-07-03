@@ -229,6 +229,14 @@
   /* ---- segmentados (INT/EXT, DIA/NOCHE, SND) ---- */
   .seg-group{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
   .seg-group:last-child{ margin-bottom:0; }
+  /* fila tipo de óptica + squeeze en línea (squeeze se activa solo en anamórfica) */
+  .lens-row{ flex-wrap:nowrap; }
+  .lens-row .segmented{ flex:1; min-width:0; }
+  .squeeze-inline{ display:flex; align-items:center; gap:3px; flex:0 0 auto; background:var(--bg-input);
+    border:1px solid var(--border); border-radius:8px; padding:2px 4px; }
+  .squeeze-inline .sq-btn{ width:26px; height:26px; font-size:16px; flex:0 0 auto; }
+  .squeeze-inline .val{ font-family:var(--mono); font-size:15px; font-weight:700; min-width:30px; text-align:center; }
+  .squeeze-inline.disabled{ opacity:.35; pointer-events:none; }
   .segmented{ display:flex; flex:1; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .segmented button{ flex:1; background:var(--bg-input); border:none; color:var(--fg-dim);
     font-family:var(--mono); font-size:12px; letter-spacing:.08em; padding:10px 4px; }
@@ -514,10 +522,15 @@
             <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
           </div>
         </div>
-        <div class="seg-group">
+        <div class="seg-group lens-row">
           <div class="segmented" data-field="lensType">
             <button data-value="sph" data-i18n="esferica">Esférica</button>
             <button data-value="ana" data-i18n="anamorfica">Anamórfica</button>
+          </div>
+          <div class="squeeze-inline" id="squeeze-inline" title="Squeeze (anamórfica)">
+            <button class="step-btn sq-btn" data-sq="-1">&minus;</button>
+            <div class="val" data-val>2x</div>
+            <button class="step-btn sq-btn" data-sq="1">+</button>
           </div>
         </div>
         <div class="lens-pick-row">
@@ -538,14 +551,6 @@
             <div class="row">
               <button class="step-btn" data-dir="-1">&minus;</button>
               <div class="val" data-val>35</div>
-              <button class="step-btn" data-dir="1">+</button>
-            </div>
-          </div>
-          <div class="stepper" data-field="squeeze" id="stepper-squeeze">
-            <div class="lbl" data-i18n="squeeze">Squeeze</div>
-            <div class="row">
-              <button class="step-btn" data-dir="-1">&minus;</button>
-              <div class="val" data-val>2x</div>
               <button class="step-btn" data-dir="1">+</button>
             </div>
           </div>
@@ -3294,8 +3299,11 @@ function renderEdit(){
   setSegmented('int', state.int);
   setSegmented('dn', state.dn);
   setSegmented('lensType', state.lensType);
-  document.querySelector('.stepper[data-field="squeeze"] [data-val]').textContent = formatSqueeze(state.squeeze);
-  document.getElementById('stepper-squeeze').style.display = state.lensType === 'ana' ? '' : 'none';
+  // Squeeze en línea: activo solo en anamórfica; en esférica se ve "1x" atenuado.
+  const isAna = state.lensType === 'ana';
+  const sqInline = document.getElementById('squeeze-inline');
+  sqInline.querySelector('[data-val]').textContent = isAna ? formatSqueeze(state.squeeze) : '1x';
+  sqInline.classList.toggle('disabled', !isAna);
   const lpName = document.getElementById('lens-pick-name');
   if(lpName){
     lpName.textContent = state.lensName || t('manual');
@@ -3465,7 +3473,6 @@ document.querySelectorAll('.stepper-grid .stepper .step-btn').forEach(btn=>{
     switch(field){
       case 'fps': state.fps = clampList(FPS_LIST, state.fps, dir); break;
       case 'mm':  state.mm  = clampNum(state.mm, dir, 1, 8, 300); state.lensName = ''; break;
-      case 'squeeze': state.squeeze = clampList(SQUEEZE_LIST, state.squeeze, dir); state.lensName = ''; break;
       case 'sht':
         if(state.shtMode === 'deg') state.shtDeg = clampList(SHUTTER_ANGLE_LIST, state.shtDeg, dir);
         else state.sht = clampList(SHUTTER_LIST, state.sht, dir);
@@ -3477,6 +3484,17 @@ document.querySelectorAll('.stepper-grid .stepper .step-btn').forEach(btn=>{
         else state.wb = clampList(WB_LIST, state.wb, dir);
         break;
     }
+    renderEdit(); saveState();
+  });
+});
+
+// Squeeze en línea (junto a Esférica/Anamórfica): solo actúa en anamórfica.
+document.querySelectorAll('#squeeze-inline .sq-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(state.lensType !== 'ana') return;   // desactivado en esférica
+    const dir = parseInt(btn.dataset.sq, 10);
+    state.squeeze = clampList(SQUEEZE_LIST, state.squeeze, dir);
+    state.lensName = '';                    // ajuste manual: deja de ser una óptica de la lista
     renderEdit(); saveState();
   });
 });
