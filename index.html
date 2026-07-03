@@ -196,6 +196,8 @@
     padding:10px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; box-sizing:border-box; }
   .sst-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
   .prod-field{ margin-bottom:10px; }
+  .qr-level-hint{ font-family:var(--mono); font-size:10px; color:var(--fg-dim); line-height:1.5; margin-top:6px; }
+  .qr-level-hint .qr-hint-foot{ opacity:.65; margin-top:4px; }
   .prod-field:last-child{ margin-bottom:0; }
   .prod-field .lbl{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em;
     color:var(--fg-dim); text-transform:uppercase; margin-bottom:6px; }
@@ -468,6 +470,16 @@
         <div class="prod-field">
           <label class="lbl" data-i18n="dp">Dir. de fotografía</label>
           <input type="text" id="f-dp" autocomplete="off">
+        </div>
+        <div class="prod-field">
+          <label class="lbl" data-i18n="qr_nivel">Nivel del QR</label>
+          <div class="seg-group" style="margin-bottom:0;">
+            <div class="segmented" data-field="qrLevel">
+              <button data-value="basico" data-i18n="qr_basico">Básico</button>
+              <button data-value="completo" data-i18n="qr_completo">Completo</button>
+            </div>
+          </div>
+          <div class="qr-level-hint" id="qr-level-hint"></div>
         </div>
       </div>
     </div>
@@ -3105,6 +3117,7 @@ const DEFAULT_STATE = {
   fps:24, mm:35, lensType:'sph', squeeze:2, lensName:'', lenses:[], sht:50, shtDeg:180, shtMode:'deg', iso:800, ap:2.8, apMode:'T', wb:5600, wbCustom:false,
   goodTag:null, noteText:'', pendingAdvance:false,
   autoAdvance:true, dirty:false, negativeData:false,
+  qrLevel:'basico',          // nivel del QR: 'basico' (identidad+sync+clip+good) | 'completo' (+técnico)
   pendingGood:'', lastTakeNumber:null,
   sessionDate:null, sessionTakeCount:0, lastGoodTake:'',
   pr:'', dir:'', dp:'',
@@ -3243,6 +3256,10 @@ const I18N = {
     reset_confirm:'¿Reiniciar la sesión? Se perderá el registro de todas las tomas.',
     produccion:'Producción', director:'Director/a', dp:'Dir. de fotografía',
     datos_produccion:'Datos de producción',
+    qr_nivel:'Nivel del QR', qr_basico:'Básico', qr_completo:'Completo',
+    qr_hint_basico:'Viaja: escena, plano, toma, cámara, tarjeta, nombre de clip, hora del clap y toma buena.',
+    qr_hint_completo:'Todo lo del Básico + Int/Ext, Día/Noche, fps, óptica, obturador, ISO, diafragma y WB.',
+    qr_hint_foot:'Producción, director, DP y notas van siempre en el informe (CSV/JSON).',
   },
   en: {
     title:'CLAPPERQR',
@@ -3270,6 +3287,10 @@ const I18N = {
     reset_confirm:'Reset the session? All recorded takes will be lost.',
     produccion:'Production', director:'Director', dp:'Cinematographer',
     datos_produccion:'Production info',
+    qr_nivel:'QR level', qr_basico:'Basic', qr_completo:'Full',
+    qr_hint_basico:'Carries: scene, shot, take, camera, card, clip name, clap time and good take.',
+    qr_hint_completo:'Everything in Basic + Int/Ext, Day/Night, fps, lens, shutter, ISO, aperture and WB.',
+    qr_hint_foot:'Production, director, DP and notes always travel in the report (CSV/JSON).',
   },
   eu: {
     title:'CLAPPERQR',
@@ -3297,6 +3318,10 @@ const I18N = {
     reset_confirm:'Saioa berrabiarazi? Erregistratutako toma guztiak galduko dira.',
     produccion:'Ekoizpena', director:'Zuzendaria', dp:'Argazki zuzendaria',
     datos_produccion:'Ekoizpenaren datuak',
+    qr_nivel:'QR maila', qr_basico:'Oinarrizkoa', qr_completo:'Osoa',
+    qr_hint_basico:'Doa: eszena, plano, toma, kamera, txartela, klip izena, klap ordua eta toma ona.',
+    qr_hint_completo:'Oinarrizkoaren dena + Barn/Kanp, Eguna/Gaua, fps, optika, obturadorea, ISO, diafragma eta ZB.',
+    qr_hint_foot:'Ekoizpena, zuzendaria, AZ eta oharrak beti informean doaz (CSV/JSON).',
   },
 };
 function t(key){
@@ -3415,6 +3440,15 @@ function renderEdit(){
 
   setSegmented('goodTag', state.goodTag);
 
+  setSegmented('qrLevel', state.qrLevel || 'basico');
+  const qh = document.getElementById('qr-level-hint');
+  if(qh){
+    const main = (state.qrLevel === 'completo') ? t('qr_hint_completo') : t('qr_hint_basico');
+    qh.innerHTML = '';
+    const d1 = document.createElement('div'); d1.textContent = main;
+    const d2 = document.createElement('div'); d2.className = 'qr-hint-foot'; d2.textContent = t('qr_hint_foot');
+    qh.appendChild(d1); qh.appendChild(d2);
+  }
   document.getElementById('f-pr').value = state.pr || '';
   document.getElementById('f-dir').value = state.dir || '';
   document.getElementById('f-dp').value = state.dp || '';
@@ -3879,21 +3913,34 @@ function drawQR(payload, canvas, bgColor, fgColor){
    flash, con el timestamp del dispositivo (ISO 8601, milisegundos).
    Codifica solo lo esencial: sirve como ancla de sincronizacion
    (TC de claqueta) y para identificar la toma en la app de escritorio. ---- */
-function buildFlashPayload(){
-  const now = new Date();
-  const pad2 = (n)=> (n<10?'0':'') + n;
-  const tc = pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+// Bloque técnico del payload (solo va en el QR si el nivel es "completo").
+function _qrTechnical(){
   return {
-    v:1, type:'clap',
-    dt:now.toISOString().slice(0,10), tc:tc,
-    ts: now.toISOString(),
-    sc:state.sc, sh:state.sh, tk:state.tk,
-    cam:state.cam, cams:getCams(), clips:clipMap(), card:state.card, clip:formatClipName(),
     int:state.int, dn:state.dn,
     fps:state.fps, mm:state.mm, lensName:state.lensName, lensType:state.lensType, squeeze:state.squeeze,
     sht:state.sht, shtDeg:state.shtDeg, shtMode:state.shtMode,
     iso:state.iso, ap:state.ap, apMode:state.apMode, wb:state.wb
   };
+}
+/* Payload del QR de claqueta. Nivel BÁSICO (por defecto): identidad + sincronía
+   + nombre(s) de clip (fácil de escanear). Nivel COMPLETO: añade el bloque
+   técnico. Buena/mala NUNCA va aquí (se decide después → informe CSV/JSON). */
+function buildFlashPayload(){
+  const now = new Date();
+  const pad2 = (n)=> (n<10?'0':'') + n;
+  const tc = pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+  const cams = getCams();
+  const p = {
+    v:1, type:'clap',
+    dt:now.toISOString().slice(0,10), tc:tc,
+    ts: now.toISOString(),
+    sc:state.sc, sh:state.sh, tk:state.tk,
+    cam:state.cam, card:state.card, clip:formatClipName(),
+    good: state.pendingGood || ''   // relay: clave de la última toma marcada buena (Desktop la cruza)
+  };
+  if(cams.length > 1){ p.cams = cams; p.clips = clipMap(); }   // multicámara: nombres por cámara
+  if(state.qrLevel === 'completo') Object.assign(p, _qrTechnical());
+  return p;
 }
 
 /* ---- secuencia de QR tras el clap: mismo payload (mismo timestamp),
@@ -4392,6 +4439,8 @@ function saveCurrentTake(){
 
   if(state.goodTag === 'buena'){
     state.lastGoodTake = `${state.sc}-${state.sh}-${targetTk}`;
+    // relay: el próximo QR llevará la clave de esta toma buena (cámara principal)
+    state.pendingGood = takenKey(state.cam, state.card, state.sc, state.sh, targetTk);
   }
 
   state.dirty = false;             // ya está guardado en el log
@@ -4575,6 +4624,7 @@ function saveLogEdit(){
   e.toma_buena = leGood;
   const key = takenKey(e.cam, e.card, e.sc, e.sh, e.tk);
   e.good_enviado = leGood === 'buena' ? key : (leGood === 'mala' ? 'mala' : '');
+  if(leGood === 'buena') state.pendingGood = key;   // relay: el próximo QR llevará esta buena
   state.log[logEditIdx] = e;
   recomputeLastGood();
   saveState();
