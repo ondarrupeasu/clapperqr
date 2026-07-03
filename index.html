@@ -250,6 +250,7 @@
   .note-input:focus{ outline:none; border-color:var(--accent); }
   .note-input::placeholder{ color:var(--fg-dim); }
   .log-table td.td-note{ white-space:normal; min-width:150px; max-width:260px; }
+  .log-table td.td-clip{ white-space:nowrap; }
 
   /* ---- botón "Guardar toma" con estado (activo / guardado) ---- */
   .save-take-btn{ width:100%; margin-top:10px; padding:12px; border-radius:8px;
@@ -678,6 +679,7 @@
           <tr>
             <th>CAM</th>
             <th>CARD</th>
+            <th>CLIP</th>
             <th>I/E</th>
             <th>D/N</th>
             <th>FPS</th>
@@ -4442,6 +4444,7 @@ function renderLog(){
     const ap   = e.ap   != null ? apUnit(e.apMode || 'f') + e.ap : '—';
     const wb   = e.wb   != null ? e.wb + 'K' : '—';
     const notes = (e.notes || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const clip = e.clip ? String(e.clip).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
 
     rowsFixed.push(`<tr class="${cls}" data-logidx="${i}">
       <td>${hora}</td>
@@ -4454,6 +4457,7 @@ function renderLog(){
     rowsScroll.push(`<tr class="${cls}" data-logidx="${i}">
       <td>${e.cam ?? '—'}</td>
       <td>${e.card != null ? String(e.card).padStart(2,'0') : '—'}</td>
+      <td class="td-clip">${clip}</td>
       <td>${e.int ?? '—'}</td>
       <td>${e.dn ?? '—'}</td>
       <td>${fps}</td>
