@@ -7,11 +7,12 @@
    - Resto de recursos: cache primero, red de reserva.
    Para forzar que todos actualicen tras un cambio, sube el número de CACHE. */
 
-const CACHE = 'clapperqr-v1';
+const CACHE = 'clapperqr-v2';
 const SHELL = [
   './',
   'index.html',
   'manifest.json',
+  'lenses.json',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
@@ -42,10 +43,14 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  const url = new URL(req.url);
   const isHTML = req.mode === 'navigate'
     || (req.headers.get('accept') || '').includes('text/html');
+  // El catálogo de ópticas: red primero (para traer la última versión cuando
+  // hay internet), cache de reserva sin conexión.
+  const isCatalog = url.pathname.endsWith('/lenses.json') || url.pathname.endsWith('lenses.json');
 
-  if (isHTML) {
+  if (isHTML || isCatalog) {
     // Red primero para recibir la versión más nueva; si no hay red, cache.
     e.respondWith(
       fetch(req)
@@ -54,7 +59,7 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match('index.html')))
+        .catch(() => caches.match(req).then((r) => r || (isHTML ? caches.match('index.html') : undefined)))
     );
     return;
   }

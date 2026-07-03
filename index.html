@@ -188,6 +188,10 @@
     background:var(--bg-input); color:var(--fg-dim); font-size:18px; cursor:pointer; }
   .lens-add-btn{ width:100%; height:44px; border-radius:8px; font-family:var(--mono); font-weight:700; font-size:14px;
     border:1px dashed var(--border); background:transparent; color:var(--fg); cursor:pointer; margin-bottom:8px; }
+  .lens-search{ width:100%; box-sizing:border-box; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:11px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; }
+  .lens-suggest{ border-style:solid; color:var(--fg-dim); font-weight:400; font-size:13px; }
+  .lens-empty{ text-align:center; color:var(--fg-dim); font-family:var(--mono); font-size:12px; padding:18px 0; }
   .lens-form select{ width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
     padding:10px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; box-sizing:border-box; }
   .sst-edit .lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
@@ -3193,6 +3197,7 @@ const I18N = {
     esferica:'Esférica', anamorfica:'Anamórfica', squeeze:'Squeeze',
     editar_toma:'Editar toma', borrar_toma:'Borrar', buena:'Buena', mala:'Mala', intext:'Int/Ext', dianoche:'Día/Noche', valor:'Valor', grados:'grados', toma_actualizada:'Toma actualizada', toma_borrada:'Toma borrada', borrar_confirm:'¿Borrar esta toma del informe?', log_hint:'Toca una toma para marcarla o corregir sus datos.',
     optica:'Óptica', manual:'Manual', opticas_titulo:'Ópticas de la producción', anadir_optica:'+ Añadir óptica', cerrar:'Cerrar', nombre:'Nombre', focal:'Focal (mm)', tipo:'Tipo', guardar:'Guardar',
+    buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de ClapperQR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de ClapperQR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
     notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip',
@@ -3218,6 +3223,7 @@ const I18N = {
     esferica:'Spherical', anamorfica:'Anamorphic', squeeze:'Squeeze',
     editar_toma:'Edit take', borrar_toma:'Delete', buena:'Good', mala:'Bad', intext:'Int/Ext', dianoche:'Day/Night', valor:'Value', grados:'degrees', toma_actualizada:'Take updated', toma_borrada:'Take deleted', borrar_confirm:'Delete this take from the report?', log_hint:'Tap a take to flag it or fix its data.',
     optica:'Lens', manual:'Manual', opticas_titulo:'Production lenses', anadir_optica:'+ Add lens', cerrar:'Close', nombre:'Name', focal:'Focal length (mm)', tipo:'Type', guardar:'Save',
+    buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the ClapperQR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the ClapperQR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
     notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name',
@@ -3243,6 +3249,7 @@ const I18N = {
     esferica:'Esferikoa', anamorfica:'Anamorfikoa', squeeze:'Squeeze',
     editar_toma:'Editatu toma', borrar_toma:'Ezabatu', buena:'Ona', mala:'Txarra', intext:'Barn/Kanp', dianoche:'Eguna/Gaua', valor:'Balioa', grados:'graduak', toma_actualizada:'Toma eguneratua', toma_borrada:'Toma ezabatua', borrar_confirm:'Toma hau informetik ezabatu?', log_hint:'Ukitu toma bat markatzeko edo datuak zuzentzeko.',
     optica:'Optika', manual:'Eskuz', opticas_titulo:'Ekoizpenaren optikak', anadir_optica:'+ Gehitu optika', cerrar:'Itxi', nombre:'Izena', focal:'Fokua (mm)', tipo:'Mota', guardar:'Gorde',
+    buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika ClapperQR katalogorako', sugerir_cuerpo:'Kaixo, optika hau ClapperQR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
     notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena',
@@ -4598,6 +4605,7 @@ function renderLensList(){
 }
 function openLensModal(){
   document.getElementById('lens-form').style.display = 'none';
+  document.getElementById('lens-catalog-view').style.display = 'none';
   document.getElementById('lens-list-view').style.display = '';
   renderLensList();
   document.getElementById('lens-backdrop').classList.add('show');
@@ -4612,14 +4620,96 @@ function showLensForm(){
   document.getElementById('lens-list-view').style.display = 'none';
   document.getElementById('lens-form').style.display = '';
 }
+/* ---- catálogo de ópticas (lenses.json, cacheado por el SW: offline y se
+   actualiza al conectar). Se aplana en ópticas concretas seleccionables. ---- */
+let LENS_CATALOG = [];
+function loadLensCatalog(){
+  fetch('lenses.json', { cache:'no-cache' })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if(d && Array.isArray(d.lenses)) LENS_CATALOG = d.lenses; })
+    .catch(()=>{ /* sin red ni cache: catálogo vacío, quedan Manual y Añadir */ });
+}
+function catalogEntries(query, cat){
+  const terms = (query||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const out = [];
+  LENS_CATALOG.forEach(m => {
+    if(cat && cat !== 'all' && m.cat !== cat) return;
+    const base = m.brand + ' ' + m.model;
+    (m.primes||[]).forEach(f => out.push({ label: base+' '+f+'mm', brand:m.brand, model:m.model, lensType:m.type, squeeze:m.squeeze||2, kind:'prime', mm:f }));
+    (m.zooms||[]).forEach(z => out.push({ label: base+' '+z[0]+'-'+z[1]+'mm', brand:m.brand, model:m.model, lensType:m.type, squeeze:m.squeeze||2, kind:'zoom', min:z[0], max:z[1] }));
+  });
+  return terms.length ? out.filter(e => { const s = e.label.toLowerCase(); return terms.every(t => s.includes(t)); }) : out;
+}
+function addCatalogLens(entry, mm){
+  const name = entry.kind === 'zoom' ? (entry.brand+' '+entry.model+' '+mm+'mm') : entry.label;
+  const lens = { name, mm, lensType: entry.lensType, squeeze: entry.lensType === 'ana' ? entry.squeeze : 2 };
+  if(!state.lenses) state.lenses = [];
+  if(!state.lenses.some(l => l.name === name)) state.lenses.push(lens);
+  applyLens(lens);
+  saveState();
+  closeLensModal();
+  showToast(t('optica_anadida'));
+}
+function renderCatalog(){
+  const wrap = document.getElementById('lens-catalog-list');
+  const q = document.getElementById('lens-search').value;
+  const cat = (document.querySelector('#lens-catfilter button.active') || {}).dataset ? document.querySelector('#lens-catfilter button.active').dataset.cat : 'all';
+  const esc = (s)=> (s||'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  wrap.innerHTML = '';
+  if(q.trim().length === 0 && cat === 'all'){ wrap.innerHTML = '<div class="lens-empty">'+esc(t('catalogo_escribe'))+'</div>'; return; }
+  const list = catalogEntries(q, cat).slice(0, 80);
+  if(!list.length){ wrap.innerHTML = '<div class="lens-empty">'+esc(t('catalogo_vacio'))+'</div>'; return; }
+  list.forEach(e => {
+    const item = document.createElement('div'); item.className = 'lens-item';
+    const sel = document.createElement('button'); sel.className = 'lens-sel';
+    const sub = e.lensType === 'ana' ? ('Ana '+formatSqueeze(e.squeeze)) : t('esferica');
+    sel.innerHTML = '<span>'+esc(e.label)+'</span><span class="lens-sub">'+esc(sub)+'</span>';
+    sel.addEventListener('click', ()=>{
+      if(e.kind === 'zoom'){
+        closeLensModal();
+        openKeypad({ title:t('catalogo_focal'), value:e.min, min:e.min, max:e.max, maxDigits:4, onConfirm:(v)=> addCatalogLens(e, v) });
+      } else {
+        addCatalogLens(e, e.mm);
+      }
+    });
+    item.appendChild(sel); wrap.appendChild(item);
+  });
+}
+function openLensCatalog(){
+  document.getElementById('lens-list-view').style.display = 'none';
+  document.getElementById('lens-form').style.display = 'none';
+  document.getElementById('lens-catalog-view').style.display = '';
+  renderCatalog();
+}
+function suggestLens(){
+  const q = document.getElementById('lens-search').value.trim();
+  const subject = encodeURIComponent(t('sugerir_asunto'));
+  const body = encodeURIComponent((q ? (t('optica') + ': ' + q + '\n\n') : '') + t('sugerir_cuerpo'));
+  window.location.href = 'mailto:ondarru.peasu@gmail.com?subject=' + subject + '&body=' + body;
+}
 (function(){
   function setup(){
     const bd = document.getElementById('lens-backdrop');
     if(!bd) return;
+    loadLensCatalog();
     document.getElementById('lens-pick').addEventListener('click', openLensModal);
     document.getElementById('lens-close').addEventListener('click', closeLensModal);
     bd.addEventListener('click', (e)=>{ if(e.target === bd) closeLensModal(); });
     document.getElementById('lens-add').addEventListener('click', showLensForm);
+    document.getElementById('lens-catalog-open').addEventListener('click', openLensCatalog);
+    document.getElementById('lens-catalog-back').addEventListener('click', ()=>{
+      document.getElementById('lens-catalog-view').style.display = 'none';
+      document.getElementById('lens-list-view').style.display = '';
+    });
+    document.getElementById('lens-search').addEventListener('input', renderCatalog);
+    document.getElementById('lens-suggest').addEventListener('click', suggestLens);
+    document.querySelectorAll('#lens-catfilter button').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        document.querySelectorAll('#lens-catfilter button').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        renderCatalog();
+      });
+    });
     document.getElementById('lensf-cancel').addEventListener('click', ()=>{
       document.getElementById('lens-form').style.display = 'none';
       document.getElementById('lens-list-view').style.display = '';
@@ -4979,8 +5069,22 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
     <div class="confirm-msg" id="lens-modal-title" data-i18n="opticas_titulo">Ópticas de la producción</div>
     <div id="lens-list-view">
       <div class="lens-list" id="lens-list"></div>
+      <button class="lens-add-btn" id="lens-catalog-open" data-i18n="buscar_catalogo">🔍 Buscar en el catálogo</button>
       <button class="lens-add-btn" id="lens-add" data-i18n="anadir_optica">+ Añadir óptica</button>
       <button id="lens-close" class="export-cancel-btn" data-i18n="cerrar">Cerrar</button>
+    </div>
+    <div id="lens-catalog-view" style="display:none;">
+      <input id="lens-search" class="lens-search" type="search" autocomplete="off" data-i18n-ph="buscar_ph" placeholder="Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)">
+      <div class="seg-group" style="margin:8px 0;">
+        <div class="segmented" id="lens-catfilter">
+          <button data-cat="all" class="active" data-i18n="todas">Todas</button>
+          <button data-cat="cine" data-i18n="cine">Cine</button>
+          <button data-cat="photo" data-i18n="foto">Foto</button>
+        </div>
+      </div>
+      <div class="lens-list" id="lens-catalog-list"></div>
+      <button class="lens-add-btn lens-suggest" id="lens-suggest" data-i18n="sugerir_optica">✉︎ Sugerir una óptica que falta</button>
+      <button id="lens-catalog-back" class="export-cancel-btn" data-i18n="volver">Volver</button>
     </div>
     <div class="lens-form" id="lens-form" style="display:none;">
       <div class="prod-field"><label class="lbl" data-i18n="nombre">Nombre</label>
