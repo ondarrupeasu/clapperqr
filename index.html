@@ -214,6 +214,9 @@
     border-radius:8px; padding:8px 10px; color:var(--fg); font-family:var(--mono); font-size:13px; text-align:right; }
   .clip-name{ font-family:var(--mono); font-size:18px; font-weight:700; color:var(--fg); background:var(--bg-input);
     border:1px solid var(--border); border-radius:8px; padding:6px 12px; cursor:pointer; letter-spacing:.04em; }
+  .clip-name.multi{ font-size:13px; font-weight:600; text-align:right; line-height:1.5; }
+  .clip-fmt-sel:disabled, .cam-name-inp:disabled{ opacity:.4; }
+  .cam-multi-hint{ font-family:var(--mono); font-size:10px; color:var(--fg-dim); margin-top:6px; line-height:1.4; }
   .clip-name:active{ background:var(--border); }
   .step-btn{ background:var(--bg-input); border:1px solid var(--border); color:var(--fg);
     width:38px; height:38px; border-radius:8px; font-size:20px; font-family:var(--mono); display:flex; align-items:center; justify-content:center; }
@@ -500,6 +503,7 @@
         <span class="clip-lbl" data-i18n="formato_clip">Formato</span>
         <select id="clip-format" class="clip-fmt-sel"></select>
       </div>
+      <div class="cam-multi-hint" id="cam-multi-hint" data-i18n="multi_edit_hint" style="display:none">Multicámara: selecciona una sola cámara para editar su formato y nombre.</div>
     </div>
 
     <div class="card">
@@ -3224,7 +3228,7 @@ const I18N = {
     buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de ClapperQR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de ClapperQR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
-    notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip', formato_clip:'Formato', nombre_camara:'Nombre de cámara',
+    notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip', formato_clip:'Formato', nombre_camara:'Nombre de cámara', multi_edit_hint:'Multicámara: selecciona una sola cámara para editar su formato y nombre.',
     fmt_arri:'ARRI · RED · Sony · Canon (A001C001)', fmt_red_us:'RED · Blackmagic (A001_C001)', fmt_sony_t:'Sony Title (C0001)', fmt_bmd_date:'Blackmagic + fecha (A001_20260703_C001)', fmt_canon_xf:'Canon XF (AA0001)', fmt_pana:'Panasonic (P0000001)', fmt_dji:'DJI nativo (DJI_0001)', fmt_gopro:'GoPro (GX010001)', fmt_img:'iPhone / genérico (IMG_0001)',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
     cancelar:'Cancelar', aceptar:'Aceptar', exportar_como:'¿Qué formato quieres exportar?', todos:'Los tres',
@@ -3251,7 +3255,7 @@ const I18N = {
     buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the ClapperQR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the ClapperQR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
-    notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name', formato_clip:'Format', nombre_camara:'Camera name',
+    notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name', formato_clip:'Format', nombre_camara:'Camera name', multi_edit_hint:'Multicam: select a single camera to edit its format and name.',
     fmt_bmd_date:'Blackmagic + date (A001_20260703_C001)', fmt_dji:'DJI native (DJI_0001)', fmt_img:'iPhone / generic (IMG_0001)',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
     cancelar:'Cancel', aceptar:'OK', exportar_como:'Which format to export?', todos:'All three',
@@ -3278,7 +3282,7 @@ const I18N = {
     buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika ClapperQR katalogorako', sugerir_cuerpo:'Kaixo, optika hau ClapperQR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
-    notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena', formato_clip:'Formatua', nombre_camara:'Kamera izena',
+    notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena', formato_clip:'Formatua', nombre_camara:'Kamera izena', multi_edit_hint:'Kamera anitz: hautatu kamera bakarra bere formatua eta izena editatzeko.',
     fmt_bmd_date:'Blackmagic + data (A001_20260703_C001)', fmt_dji:'DJI natiboa (DJI_0001)', fmt_img:'iPhone / orokorra (IMG_0001)',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
     cancelar:'Utzi', aceptar:'Ados', exportar_como:'Zein formatu esportatu?', todos:'Hirurak',
@@ -3387,15 +3391,25 @@ function renderEdit(){
 
   document.querySelector('.sst-edit[data-field="card"] [data-val]').textContent = formatCard(state.card);
   setSegmentedCam();
-  const nCams = getCams().length;
-  document.getElementById('clip-name').textContent = formatClipName() + (nCams > 1 ? '  +' + (nCams - 1) : '');
+  const camsSel = getCams();
+  const multiCam = camsSel.length > 1;
+  // Multicámara: mostrar el nombre de clip de CADA cámara (cada una con su
+  // formato/nombre); en una sola cámara, el suyo.
+  const clipBtn = document.getElementById('clip-name');
+  clipBtn.textContent = multiCam ? camsSel.map(c => formatClipName(c)).join('  ·  ') : formatClipName();
+  clipBtn.classList.toggle('multi', multiCam);
+  // El formato y el nombre editan la cámara ACTIVA; con varias seleccionadas se
+  // desactivan (para editarlas, seleccionar una sola).
   const cfSel = document.getElementById('clip-format');
-  if(cfSel) cfSel.value = (state.clipFormats && state.clipFormats[state.cam]) || 'arri';
+  if(cfSel){ cfSel.value = (state.clipFormats && state.clipFormats[state.cam]) || 'arri'; cfSel.disabled = multiCam; }
   const cnInp = document.getElementById('cam-name');
   if(cnInp && document.activeElement !== cnInp){
     cnInp.value = (state.camNames && state.camNames[state.cam]) || '';
     cnInp.placeholder = state.cam || 'A';
+    cnInp.disabled = multiCam;
   }
+  const mHint = document.getElementById('cam-multi-hint');
+  if(mHint) mHint.style.display = multiCam ? '' : 'none';
 
   setSegmented('goodTag', state.goodTag);
 
