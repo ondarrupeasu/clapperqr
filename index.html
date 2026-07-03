@@ -3208,6 +3208,7 @@ const I18N = {
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
     notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip', formato_clip:'Formato',
+    fmt_arri:'ARRI · RED · Sony · Canon (A001C001)', fmt_red_us:'RED · Blackmagic (A001_C001)', fmt_sony_t:'Sony Title (C0001)', fmt_bmd_date:'Blackmagic + fecha (A001_20260703_C001)', fmt_canon_xf:'Canon XF (AA0001)', fmt_pana:'Panasonic (P0000001)', fmt_dji:'DJI nativo (DJI_0001)', fmt_gopro:'GoPro (GX010001)', fmt_img:'iPhone / genérico (IMG_0001)',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
     cancelar:'Cancelar', aceptar:'Aceptar', exportar_como:'¿Qué formato quieres exportar?', todos:'Los tres',
     auto_on:'¿Activar el avance automático de toma?\n\nLa toma subirá sola tras cada claqueta.',
@@ -3234,6 +3235,7 @@ const I18N = {
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
     notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name', formato_clip:'Format',
+    fmt_bmd_date:'Blackmagic + date (A001_20260703_C001)', fmt_dji:'DJI native (DJI_0001)', fmt_img:'iPhone / generic (IMG_0001)',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
     cancelar:'Cancel', aceptar:'OK', exportar_como:'Which format to export?', todos:'All three',
     auto_on:'Turn ON auto-advance take?\n\nThe take will increase automatically after each clap.',
@@ -3260,6 +3262,7 @@ const I18N = {
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
     notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena', formato_clip:'Formatua',
+    fmt_bmd_date:'Blackmagic + data (A001_20260703_C001)', fmt_dji:'DJI natiboa (DJI_0001)', fmt_img:'iPhone / orokorra (IMG_0001)',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
     cancelar:'Utzi', aceptar:'Ados', exportar_como:'Zein formatu esportatu?', todos:'Hirurak',
     auto_on:'Tomaren aurrerapen automatikoa AKTIBATU?\n\nToma bakoitzean automatikoki igoko da klaketaren ostean.',
@@ -3404,12 +3407,18 @@ function updateAutoBadge(){
    a partir de: c = letra de cámara, r = nº de tarjeta/reel, k = nº de clip.
    La fecha (Blackmagic) sale de la sesión. Sin extensión (la resuelve Desktop). */
 function _clipDate(){ return (state.sessionDate || new Date().toISOString().slice(0,10)).replace(/-/g,''); }
+function _P(n, w){ return String(n).padStart(w, '0'); }
+function _reelLetter(r){ r = parseInt(r,10) || 1; return (r>=1 && r<=26) ? String.fromCharCode(64+r) : String(r); }
 const CLIP_FORMATS = {
-  arri:    { label: 'ARRI · RED · Sony · Canon (A001C001)', fn: (c,r,k)=> c + String(r).padStart(3,'0') + 'C' + String(k).padStart(3,'0') },
-  red_us:  { label: 'RED · Blackmagic (A001_C001)',          fn: (c,r,k)=> c + String(r).padStart(3,'0') + '_C' + String(k).padStart(3,'0') },
-  sony_t:  { label: 'Sony Title (C0001)',                    fn: (c,r,k)=> 'C' + String(k).padStart(4,'0') },
-  bmd_date:{ label: 'Blackmagic + fecha (A001_20260703_C001)', fn: (c,r,k)=> c + String(r).padStart(3,'0') + '_' + _clipDate() + '_C' + String(k).padStart(3,'0') },
-  pana:    { label: 'Panasonic (P0000001)',                  fn: (c,r,k)=> 'P' + String(k).padStart(7,'0') },
+  arri:    { i18n:'fmt_arri',     fn:(c,r,k)=> c + _P(r,3) + 'C' + _P(k,3) },
+  red_us:  { i18n:'fmt_red_us',   fn:(c,r,k)=> c + _P(r,3) + '_C' + _P(k,3) },
+  sony_t:  { i18n:'fmt_sony_t',   fn:(c,r,k)=> 'C' + _P(k,4) },
+  bmd_date:{ i18n:'fmt_bmd_date', fn:(c,r,k)=> c + _P(r,3) + '_' + _clipDate() + '_C' + _P(k,3) },
+  canon_xf:{ i18n:'fmt_canon_xf', fn:(c,r,k)=> c + _reelLetter(r) + _P(k,4) },
+  pana:    { i18n:'fmt_pana',     fn:(c,r,k)=> 'P' + _P(k,7) },
+  dji:     { i18n:'fmt_dji',      fn:(c,r,k)=> 'DJI_' + _P(k,4) },
+  gopro:   { i18n:'fmt_gopro',    fn:(c,r,k)=> 'GX01' + _P(k,4) },
+  img:     { i18n:'fmt_img',      fn:(c,r,k)=> 'IMG_' + _P(k,4) },
 };
 function formatClipName(cam){
   cam = cam || state.cam || 'A';
@@ -3423,7 +3432,8 @@ function formatClipName(cam){
   const sel = document.getElementById('clip-format');
   if(!sel) return;
   Object.entries(CLIP_FORMATS).forEach(([id, f])=>{
-    const o = document.createElement('option'); o.value = id; o.textContent = f.label; sel.appendChild(o);
+    const o = document.createElement('option'); o.value = id;
+    o.dataset.i18n = f.i18n; o.textContent = t(f.i18n); sel.appendChild(o);
   });
   sel.addEventListener('change', ()=>{ state.clipFormat = sel.value; renderEdit(); saveState(); });
 })();
