@@ -151,6 +151,12 @@
   .sst-edit .val{ font-family:var(--mono); font-size:21px; font-weight:700; line-height:1; flex:1; text-align:center; min-width:0; overflow:hidden; }
   .sst-edit .row{ display:flex; align-items:center; justify-content:space-between; gap:4px; }
   .sst-edit .step-btn{ width:28px; height:28px; font-size:15px; flex:0 0 auto; }
+  /* ---- fila del nombre de clip (A001C001) ---- */
+  .clip-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
+  .clip-lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
+  .clip-name{ font-family:var(--mono); font-size:18px; font-weight:700; color:var(--fg); background:var(--bg-input);
+    border:1px solid var(--border); border-radius:8px; padding:6px 12px; cursor:pointer; letter-spacing:.04em; }
+  .clip-name:active{ background:var(--border); }
   .step-btn{ background:var(--bg-input); border:1px solid var(--border); color:var(--fg);
     width:38px; height:38px; border-radius:8px; font-size:20px; font-family:var(--mono); display:flex; align-items:center; justify-content:center; }
   .step-btn:active{ background:var(--border); }
@@ -414,6 +420,10 @@
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
+      </div>
+      <div class="clip-row">
+        <span class="clip-lbl" data-i18n="nombre_clip">Nombre de clip</span>
+        <button id="clip-name" class="clip-name" title="Tocar para corregir el nº de clip">A001C001</button>
       </div>
     </div>
 
@@ -2981,6 +2991,7 @@ const WB_LIST = [2700,3000,3200,3800,4300,5000,5600,6500,7500];
 /* ---- estado persistente ---- */
 const DEFAULT_STATE = {
   cam:'A', card:1,
+  clipNos:{A:1, B:1, C:1},   // siguiente nº de clip por cámara (reel = cam+tarjeta)
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
   fps:25, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
@@ -2995,11 +3006,16 @@ const DEFAULT_STATE = {
 };
 
 function loadState(){
+  let s;
   try{
     const saved = JSON.parse(localStorage.getItem('claquetaState'));
-    if(saved && typeof saved === 'object') return Object.assign({}, DEFAULT_STATE, saved);
-  }catch(e){ /* sin estado guardado o corrupto: se usa el por defecto */ }
-  return Object.assign({}, DEFAULT_STATE);
+    s = (saved && typeof saved === 'object') ? Object.assign({}, DEFAULT_STATE, saved) : Object.assign({}, DEFAULT_STATE);
+  }catch(e){ s = Object.assign({}, DEFAULT_STATE); }
+  // Object.assign es superficial: dar copias propias a los objetos/arrays
+  // anidados para no mutar DEFAULT_STATE.
+  s.clipNos = Object.assign({A:1, B:1, C:1}, s.clipNos);
+  s.log = Array.isArray(s.log) ? s.log.slice() : [];
+  return s;
 }
 function saveState(){
   localStorage.setItem('claquetaState', JSON.stringify(state));
@@ -3077,7 +3093,7 @@ const I18N = {
     lente:'Lente (mm)', obturador:'Obturador 1/x', diafragma:'Diafragma f/', wb:'Balance de blancos (K)',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
-    notas:'Notas', notas_ph:'Notas de la toma…',
+    notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
     cancelar:'Cancelar', aceptar:'Aceptar',
     auto_on:'¿Activar el avance automático de toma?\n\nLa toma subirá sola tras cada claqueta.',
@@ -3099,7 +3115,7 @@ const I18N = {
     lente:'Lens (mm)', obturador:'Shutter 1/x', diafragma:'Aperture f/', wb:'White balance (K)',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
-    notas:'Notes', notas_ph:'Take notes…',
+    notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
     cancelar:'Cancel', aceptar:'OK',
     auto_on:'Turn ON auto-advance take?\n\nThe take will increase automatically after each clap.',
@@ -3121,7 +3137,7 @@ const I18N = {
     lente:'Lentea (mm)', obturador:'Obturadorea 1/x', diafragma:'Diafragma f/', wb:'Zuri balantzea (K)',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
-    notas:'Oharrak', notas_ph:'Tomaren oharrak…',
+    notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
     cancelar:'Utzi', aceptar:'Ados',
     auto_on:'Tomaren aurrerapen automatikoa AKTIBATU?\n\nToma bakoitzean automatikoki igoko da klaketaren ostean.',
@@ -3211,6 +3227,7 @@ function renderEdit(){
 
   document.querySelector('.sst-edit[data-field="card"] [data-val]').textContent = formatCard(state.card);
   setSegmented('cam', state.cam);
+  document.getElementById('clip-name').textContent = formatClipName();
 
   setSegmented('goodTag', state.goodTag);
 
@@ -3245,6 +3262,16 @@ function updateAutoBadge(){
   if(b) b.classList.toggle('on', !!state.autoAdvance);
 }
 
+/* Nombre de clip previsto: reel (cámara + tarjeta) + C + nº de clip (por cámara).
+   p.ej. cámara A, tarjeta 1, clip 1 -> A001C001. Sin extensión (la resuelve
+   Desktop del archivo real). */
+function formatClipName(){
+  const cam  = state.cam || 'A';
+  const reel = String(state.card).padStart(3, '0');
+  const clip = String((state.clipNos && state.clipNos[cam]) || 1).padStart(3, '0');
+  return `${cam}${reel}C${clip}`;
+}
+
 /* ---- diálogo de confirmación genérico (Cancelar / Aceptar) ---- */
 let _confirmCb = null;
 function confirmDialog(message, onAccept){
@@ -3277,6 +3304,11 @@ document.querySelectorAll('.sst-edit .step-btn').forEach(btn=>{
     const field = btn.closest('.sst-edit').dataset.field;
     const dir = parseInt(btn.dataset.dir, 10);
     state[field] = Math.max(1, state[field] + dir);
+    // Cambiar de tarjeta = nuevo reel: el clip de esta cámara vuelve a 1.
+    if(field === 'card'){
+      if(!state.clipNos) state.clipNos = {A:1, B:1, C:1};
+      state.clipNos[state.cam] = 1;
+    }
     renderEdit(); saveState();
   });
 });
@@ -3365,6 +3397,16 @@ document.getElementById('btn-auto-advance').addEventListener('click', (e)=>{
 });
 document.getElementById('btn-save-take-ctx').addEventListener('click', ()=>{
   if(state.dirty) saveCurrentTake();
+});
+// Tocar el nombre de clip → corregir el nº de clip de la cámara actual.
+document.getElementById('clip-name').addEventListener('click', ()=>{
+  openKeypad({ title:'Nº de clip (' + (state.cam||'A') + ')',
+    value:(state.clipNos && state.clipNos[state.cam]) || 1, min:1, maxDigits:4,
+    onConfirm:(v)=>{
+      if(!state.clipNos) state.clipNos = {A:1, B:1, C:1};
+      state.clipNos[state.cam] = v;
+      renderEdit(); saveState();
+    } });
 });
 
 /* ---- teclado numérico a medida (reutilizable: Escena/Plano/Toma y WB) ---- */
@@ -3535,7 +3577,7 @@ function buildFlashPayload(){
     dt:now.toISOString().slice(0,10), tc:tc,
     ts: now.toISOString(),
     sc:state.sc, sh:state.sh, tk:state.tk,
-    cam:state.cam, card:state.card,
+    cam:state.cam, card:state.card, clip:formatClipName(),
     int:state.int, dn:state.dn,
     fps:state.fps, mm:state.mm, sht:state.sht, iso:state.iso, ap:state.ap, wb:state.wb
   };
@@ -3650,9 +3692,14 @@ function confirmRoll(clapPayload){
     clap_ts: clapPayload ? clapPayload.ts : '',
     sc: state.sc, sh: state.sh, tk: state.tk,
     cam: state.cam, card: state.card,
+    clip: formatClipName(),
     int: state.int, dn: state.dn,
     fps: state.fps, mm: state.mm, sht: state.sht, iso: state.iso, ap: state.ap, wb: state.wb
   });
+
+  // Avanzar el contador de clip de ESTA cámara (cada clap = un clip grabado).
+  if(!state.clipNos) state.clipNos = {A:1, B:1, C:1};
+  state.clipNos[state.cam] = ((state.clipNos[state.cam] || 1)) + 1;
 
   state.lastTakeNumber = state.tk;
   state.pendingAdvance = true;
@@ -3933,7 +3980,7 @@ function playClap(){
 
 /* ---- exportar log de sesion (CSV via Web Share API, con fallback de descarga) ---- */
 function buildCSV(){
-  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','int','dn','fps','mm','sht','iso','ap','wb','toma_buena','notes','good_enviado'];
+  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','clip','int','dn','fps','mm','sht','iso','ap','wb','toma_buena','notes','good_enviado'];
   const lines = [];
 
   const meta = [
@@ -3991,7 +4038,8 @@ function buildText(){
     const hora = e.clap_ts ? e.clap_ts.slice(11,19) : (e.ts ? e.ts.slice(11,19) : '');
     const good = e.toma_buena === 'buena' ? '  ✓ BUENA' : e.toma_buena === 'mala' ? '  ✗ mala' : '';
     const card = e.card != null ? String(e.card).padStart(2,'0') : '—';
-    L.push(`${hora}  Esc ${e.sc} / Plano ${e.sh} / Toma ${e.tk}  ·  Cam ${e.cam}·${card}${good}`);
+    const clip = e.clip ? '  [' + e.clip + ']' : '';
+    L.push(`${hora}  Esc ${e.sc} / Plano ${e.sh} / Toma ${e.tk}  ·  Cam ${e.cam}·${card}${clip}${good}`);
     if(e.notes) L.push('   Nota: ' + e.notes);
   });
   return L.join('\n');
@@ -4172,6 +4220,8 @@ function resetSession(){
   const lang = state.lang;
   localStorage.removeItem('claquetaState');
   state = Object.assign({}, DEFAULT_STATE);
+  state.clipNos = {A:1, B:1, C:1};   // copia propia (no compartir con DEFAULT_STATE)
+  state.log = [];
   state.lang = lang;
   state.sessionDate = new Date().toISOString().slice(0,10);
   saveState();
