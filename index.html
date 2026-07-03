@@ -148,15 +148,16 @@
   .prod-field input{ width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
     padding:10px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; box-sizing:border-box; }
   .prod-field input:focus{ outline:none; border-color:var(--accent); }
-  .sst-edit .val{ font-family:var(--mono); font-size:30px; font-weight:700; margin:4px 0; line-height:1; }
-  .sst-edit .row{ display:flex; align-items:center; justify-content:center; gap:6px; }
+  .sst-edit .val{ font-family:var(--mono); font-size:24px; font-weight:700; line-height:1; flex:1; text-align:center; min-width:0; }
+  .sst-edit .row{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .sst-edit .step-btn{ width:32px; height:32px; font-size:16px; flex:0 0 auto; }
   .step-btn{ background:var(--bg-input); border:1px solid var(--border); color:var(--fg);
     width:38px; height:38px; border-radius:8px; font-size:20px; font-family:var(--mono); display:flex; align-items:center; justify-content:center; }
   .step-btn:active{ background:var(--border); }
 
   /* ---- teclado numérico a medida (tocar el número de Escena/Plano/Toma) ---- */
   .sst-edit[data-field="sc"] .val, .sst-edit[data-field="sh"] .val,
-  .sst-edit[data-field="tk"] .val{ cursor:pointer; border-bottom:1px dotted var(--fg-dim); display:inline-block; }
+  .sst-edit[data-field="tk"] .val{ cursor:pointer; border-bottom:1px dotted var(--fg-dim); }
   #keypad-backdrop{ position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.6);
     display:none; align-items:flex-end; justify-content:center; }
   #keypad-backdrop.show{ display:flex; }
@@ -407,9 +408,9 @@
         </div>
         <div class="sst-edit" data-field="card">
           <div class="lbl" data-i18n="tarjeta">Tarjeta</div>
-          <div class="val" data-val>01</div>
           <div class="row">
             <button class="step-btn" data-dir="-1">&minus;</button>
+            <div class="val" data-val>01</div>
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
@@ -494,26 +495,26 @@
       <div class="sst-edit-grid">
         <div class="sst-edit" data-field="sc">
           <div class="lbl" data-i18n="escena">Escena</div>
-          <div class="val" data-val>1</div>
           <div class="row">
             <button class="step-btn" data-dir="-1">&minus;</button>
+            <div class="val" data-val>1</div>
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
         <div class="sst-edit" data-field="sh">
           <div class="lbl" data-i18n="plano">Plano</div>
-          <div class="val" data-val>1</div>
           <div class="row">
             <button class="step-btn" data-dir="-1">&minus;</button>
+            <div class="val" data-val>1</div>
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
         <div class="sst-edit" data-field="tk">
           <button id="btn-auto-advance" class="auto-badge" title="Avance automático de toma">AUTO</button>
           <div class="lbl" data-i18n="toma">Toma</div>
-          <div class="val" data-val>1</div>
           <div class="row">
             <button class="step-btn" data-dir="-1">&minus;</button>
+            <div class="val" data-val>1</div>
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
