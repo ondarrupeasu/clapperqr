@@ -512,11 +512,12 @@
             </div>
           </div>
           <div class="stepper" data-field="sht">
-            <div class="lbl" data-i18n="obturador">Obturador 1/x</div>
+            <div class="lbl" data-i18n="obturador">Obturador</div>
             <div class="row">
               <button class="step-btn" data-dir="-1">&minus;</button>
-              <div class="val" data-val>50</div>
+              <div class="val" data-val>180&deg;</div>
               <button class="step-btn" data-dir="1">+</button>
+              <button class="wb-toggle" id="sht-toggle" title="Grados / fracción">&deg;</button>
             </div>
           </div>
           <div class="stepper" data-field="iso">
@@ -528,11 +529,12 @@
             </div>
           </div>
           <div class="stepper" data-field="ap">
-            <div class="lbl" data-i18n="diafragma">Diafragma f/</div>
+            <div class="lbl" data-i18n="diafragma">Diafragma</div>
             <div class="row">
               <button class="step-btn" data-dir="-1">&minus;</button>
-              <div class="val" data-val>2.8</div>
+              <div class="val" data-val>T/2.8</div>
               <button class="step-btn" data-dir="1">+</button>
+              <button class="wb-toggle" id="ap-toggle" title="T-stop / f-stop">T/</button>
             </div>
           </div>
           <div class="stepper" data-field="wb">
@@ -2990,6 +2992,7 @@ var qrcode = function() {
 /* ---- listas de valores estándar de la industria para los steppers ---- */
 const FPS_LIST = [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60, 100, 120];
 const SHUTTER_LIST = [24, 25, 30, 48, 50, 60, 96, 100, 120, 125, 180, 200, 250, 500, 1000];
+const SHUTTER_ANGLE_LIST = [45, 72, 90, 120, 144, 172.8, 180, 270, 360];
 const ISO_LIST = [100,200,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400,8000,10000,12800,16000,25600];
 const APERTURE_LIST = [1.0,1.1,1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5.0,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22,25,29,32];
 const WB_LIST = [2700,3000,3200,3800,4300,5000,5600,6500,7500];
@@ -3001,7 +3004,7 @@ const DEFAULT_STATE = {
   collapsed:{},              // estado abierto/cerrado de las tarjetas desplegables
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
-  fps:24, mm:35, sht:50, iso:800, ap:2.8, wb:5600, wbCustom:false,
+  fps:24, mm:35, sht:50, shtDeg:180, shtMode:'deg', iso:800, ap:2.8, apMode:'T', wb:5600, wbCustom:false,
   goodTag:null, noteText:'', pendingAdvance:false,
   autoAdvance:true, dirty:false, negativeData:false,
   pendingGood:'', lastTakeNumber:null,
@@ -3040,6 +3043,13 @@ function formatFps(v){
   return v.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
 }
 function formatAp(v){ return String(v); }
+// Diafragma con su unidad: T/2.8 (T-stop, cine) o f/2.8 (f-stop). Misma escala.
+function apUnit(mode){ return (mode === 'f' ? 'f' : 'T') + '/'; }
+function formatApFull(v, mode){ return apUnit(mode) + formatAp(v); }
+// Obturador en grados (180°, estándar de cine) o en fracción (1/50).
+function formatShutter(sht, shtDeg, mode){
+  return mode === 'deg' ? (String(shtDeg) + '°') : ('1/' + sht);
+}
 function formatCard(v){ return String(v).padStart(2,'0'); }
 
 function formatSessionDate(isoDate, lang){
@@ -3098,7 +3108,7 @@ const I18N = {
     n_tomas:'tomas', ultima_buena:'Última toma buena', sin_tomas_buenas:'—',
     dia:'DÍA', noche:'NOCHE',
     ajustes:'Ajustes',
-    lente:'Lente (mm)', obturador:'Obturador 1/x', diafragma:'Diafragma f/', wb:'Balance de blancos (K)',
+    lente:'Lente (mm)', obturador:'Obturador', diafragma:'Diafragma', wb:'Balance de blancos (K)',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
     notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip',
@@ -3120,7 +3130,7 @@ const I18N = {
     n_tomas:'takes', ultima_buena:'Last good take', sin_tomas_buenas:'—',
     dia:'DAY', noche:'NIGHT',
     ajustes:'Settings',
-    lente:'Lens (mm)', obturador:'Shutter 1/x', diafragma:'Aperture f/', wb:'White balance (K)',
+    lente:'Lens (mm)', obturador:'Shutter', diafragma:'Aperture', wb:'White balance (K)',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
     notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name',
@@ -3142,7 +3152,7 @@ const I18N = {
     n_tomas:'toma', ultima_buena:'Azken toma ona', sin_tomas_buenas:'—',
     dia:'EGUNA', noche:'GAUA',
     ajustes:'Ezarpenak',
-    lente:'Lentea (mm)', obturador:'Obturadorea 1/x', diafragma:'Diafragma f/', wb:'Zuri balantzea (K)',
+    lente:'Lentea (mm)', obturador:'Obturadorea', diafragma:'Diafragma', wb:'Zuri balantzea (K)',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
     notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena',
@@ -3228,9 +3238,11 @@ function renderEdit(){
 
   document.querySelector('.stepper[data-field="fps"] [data-val]').textContent = formatFps(state.fps);
   document.querySelector('.stepper[data-field="mm"] [data-val]').textContent = state.mm;
-  document.querySelector('.stepper[data-field="sht"] [data-val]').textContent = state.sht;
+  document.querySelector('.stepper[data-field="sht"] [data-val]').textContent = formatShutter(state.sht, state.shtDeg, state.shtMode);
+  document.getElementById('sht-toggle').textContent = state.shtMode === 'deg' ? '°' : '1/x';
   document.querySelector('.stepper[data-field="iso"] [data-val]').textContent = state.iso;
-  document.querySelector('.stepper[data-field="ap"] [data-val]').textContent = formatAp(state.ap);
+  document.querySelector('.stepper[data-field="ap"] [data-val]').textContent = formatApFull(state.ap, state.apMode);
+  document.getElementById('ap-toggle').textContent = apUnit(state.apMode);
   renderWB();
 
   document.querySelector('.sst-edit[data-field="card"] [data-val]').textContent = formatCard(state.card);
@@ -3344,7 +3356,10 @@ document.querySelectorAll('.stepper-grid .stepper .step-btn').forEach(btn=>{
     switch(field){
       case 'fps': state.fps = clampList(FPS_LIST, state.fps, dir); break;
       case 'mm':  state.mm  = clampNum(state.mm, dir, 1, 8, 300); break;
-      case 'sht': state.sht = clampList(SHUTTER_LIST, state.sht, dir); break;
+      case 'sht':
+        if(state.shtMode === 'deg') state.shtDeg = clampList(SHUTTER_ANGLE_LIST, state.shtDeg, dir);
+        else state.sht = clampList(SHUTTER_LIST, state.sht, dir);
+        break;
       case 'iso': state.iso = clampList(ISO_LIST, state.iso, dir); break;
       case 'ap':  state.ap  = clampList(APERTURE_LIST, state.ap, dir); break;
       case 'wb':
@@ -3364,6 +3379,14 @@ document.getElementById('wb-toggle').addEventListener('click', ()=>{
     openKeypad({ title:'WB (Kelvin)', value:state.wb, min:1500, max:10000, maxDigits:5,
       onConfirm:(v)=>{ state.wb = v; renderEdit(); saveState(); } });
   }
+});
+document.getElementById('sht-toggle').addEventListener('click', ()=>{
+  state.shtMode = state.shtMode === 'deg' ? 'frac' : 'deg';
+  renderEdit(); saveState();
+});
+document.getElementById('ap-toggle').addEventListener('click', ()=>{
+  state.apMode = state.apMode === 'T' ? 'f' : 'T';
+  renderEdit(); saveState();
 });
 document.querySelector('.wb-input').addEventListener('change', (e)=>{
   let v = parseInt(e.target.value, 10);
@@ -3501,7 +3524,8 @@ function buildPayload(goodVal){
     sc:state.sc, sh:state.sh, tk:state.tk,
     cam:state.cam, card:state.card,
     int:state.int, dn:state.dn,
-    fps:state.fps, mm:state.mm, sht:state.sht, iso:state.iso, ap:state.ap, wb:state.wb,
+    fps:state.fps, mm:state.mm, sht:state.sht, shtDeg:state.shtDeg, shtMode:state.shtMode,
+    iso:state.iso, ap:state.ap, apMode:state.apMode, wb:state.wb,
     good:goodVal
   };
 }
@@ -3598,7 +3622,8 @@ function buildFlashPayload(){
     sc:state.sc, sh:state.sh, tk:state.tk,
     cam:state.cam, card:state.card, clip:formatClipName(),
     int:state.int, dn:state.dn,
-    fps:state.fps, mm:state.mm, sht:state.sht, iso:state.iso, ap:state.ap, wb:state.wb
+    fps:state.fps, mm:state.mm, sht:state.sht, shtDeg:state.shtDeg, shtMode:state.shtMode,
+    iso:state.iso, ap:state.ap, apMode:state.apMode, wb:state.wb
   };
 }
 
@@ -3643,9 +3668,9 @@ function renderDataView(payload){
     [t('b_esc'), `${payload.int}·${payload.dn}`],
     [t('b_fps'), formatFps(payload.fps)],
     [t('b_lente'), `${payload.mm}mm`],
-    [t('b_obt'), `1/${payload.sht}`],
+    [t('b_obt'), formatShutter(payload.sht, payload.shtDeg, payload.shtMode || 'frac')],
     [t('b_iso'), payload.iso],
-    [t('b_diaf'), `f/${formatAp(payload.ap)}`],
+    [t('b_diaf'), formatApFull(payload.ap, payload.apMode || 'f')],
     [t('b_wb'), `${payload.wb}K`],
   ];
 
@@ -3713,7 +3738,8 @@ function confirmRoll(clapPayload){
     cam: state.cam, card: state.card,
     clip: formatClipName(),
     int: state.int, dn: state.dn,
-    fps: state.fps, mm: state.mm, sht: state.sht, iso: state.iso, ap: state.ap, wb: state.wb
+    fps: state.fps, mm: state.mm, sht: state.sht, shtDeg: state.shtDeg, shtMode: state.shtMode,
+    iso: state.iso, ap: state.ap, apMode: state.apMode, wb: state.wb
   });
 
   // Avanzar el contador de clip de ESTA cámara (cada clap = un clip grabado).
@@ -3999,7 +4025,7 @@ function playClap(){
 
 /* ---- exportar log de sesion (CSV via Web Share API, con fallback de descarga) ---- */
 function buildCSV(){
-  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','clip','int','dn','fps','mm','sht','iso','ap','wb','toma_buena','notes','good_enviado'];
+  const cols = ['ts','clap_ts','sc','sh','tk','cam','card','clip','int','dn','fps','mm','sht','shtDeg','shtMode','iso','ap','apMode','wb','toma_buena','notes','good_enviado'];
   const lines = [];
 
   const meta = [
@@ -4128,9 +4154,10 @@ function renderLog(){
     const cls  = e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '';
     const fps  = e.fps != null ? (Number.isInteger(e.fps) ? e.fps : parseFloat(e.fps).toFixed(3).replace(/0+$/,'').replace(/\.$/,'')) : '—';
     const mm   = e.mm   != null ? e.mm + 'mm' : '—';
-    const sht  = e.sht  != null ? '1/' + e.sht : '—';
+    const sht  = (e.shtMode === 'deg' && e.shtDeg != null) ? e.shtDeg + '°'
+               : (e.sht != null ? '1/' + e.sht : '—');
     const iso  = e.iso  != null ? e.iso : '—';
-    const ap   = e.ap   != null ? 'f' + e.ap : '—';
+    const ap   = e.ap   != null ? apUnit(e.apMode || 'f') + e.ap : '—';
     const wb   = e.wb   != null ? e.wb + 'K' : '—';
     const notes = (e.notes || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
