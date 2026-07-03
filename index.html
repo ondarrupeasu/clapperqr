@@ -210,6 +210,8 @@
   .clip-lbl{ font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--fg-dim); text-transform:uppercase; }
   .clip-fmt-sel{ flex:1; min-width:0; max-width:62%; background:var(--bg-input); border:1px solid var(--border);
     border-radius:8px; padding:8px 10px; color:var(--fg); font-family:var(--mono); font-size:12px; text-align:right; }
+  .cam-name-inp{ flex:1; min-width:0; max-width:62%; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; color:var(--fg); font-family:var(--mono); font-size:13px; text-align:right; }
   .clip-name{ font-family:var(--mono); font-size:18px; font-weight:700; color:var(--fg); background:var(--bg-input);
     border:1px solid var(--border); border-radius:8px; padding:6px 12px; cursor:pointer; letter-spacing:.04em; }
   .clip-name:active{ background:var(--border); }
@@ -484,6 +486,10 @@
             <button class="step-btn" data-dir="1">+</button>
           </div>
         </div>
+      </div>
+      <div class="clip-row">
+        <span class="clip-lbl" data-i18n="nombre_camara">Nombre de cámara</span>
+        <input id="cam-name" class="cam-name-inp" type="text" maxlength="24" autocomplete="off" placeholder="A">
       </div>
       <div class="clip-row">
         <span class="clip-lbl" data-i18n="nombre_clip">Nombre de clip</span>
@@ -3081,6 +3087,7 @@ const DEFAULT_STATE = {
   cams:['A'],                // cámaras seleccionadas para el clap simultáneo (multicámara)
   clipNos:{A:1, B:1, C:1},   // siguiente nº de clip por cámara (reel = cam+tarjeta)
   clipFormat:'arri',         // formato del nombre de clip (preset por marca/cámara)
+  camNames:{A:'', B:'', C:''}, // nombre de cámara opcional (sustituye la letra en el clip, p.ej. "Ondarruphone")
   collapsed:{},              // estado abierto/cerrado de las tarjetas desplegables
   sc:1, sh:1, tk:1,
   int:'INT', dn:'DIA',
@@ -3104,6 +3111,7 @@ function loadState(){
   // Object.assign es superficial: dar copias propias a los objetos/arrays
   // anidados para no mutar DEFAULT_STATE.
   s.clipNos = Object.assign({A:1, B:1, C:1}, s.clipNos);
+  s.camNames = Object.assign({A:'', B:'', C:''}, s.camNames);
   // multicámara: normalizar la lista de cámaras seleccionadas (orden A,B,C; nunca vacía)
   const CAMS = ['A','B','C'];
   let cams = Array.isArray(s.cams) ? s.cams.filter(c => CAMS.includes(c)) : [];
@@ -3207,7 +3215,7 @@ const I18N = {
     buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de ClapperQR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de ClapperQR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
-    notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip', formato_clip:'Formato',
+    notas:'Notas', notas_ph:'Notas de la toma…', nombre_clip:'Nombre de clip', formato_clip:'Formato', nombre_camara:'Nombre de cámara',
     fmt_arri:'ARRI · RED · Sony · Canon (A001C001)', fmt_red_us:'RED · Blackmagic (A001_C001)', fmt_sony_t:'Sony Title (C0001)', fmt_bmd_date:'Blackmagic + fecha (A001_20260703_C001)', fmt_canon_xf:'Canon XF (AA0001)', fmt_pana:'Panasonic (P0000001)', fmt_dji:'DJI nativo (DJI_0001)', fmt_gopro:'GoPro (GX010001)', fmt_img:'iPhone / genérico (IMG_0001)',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
     cancelar:'Cancelar', aceptar:'Aceptar', exportar_como:'¿Qué formato quieres exportar?', todos:'Los tres',
@@ -3234,7 +3242,7 @@ const I18N = {
     buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the ClapperQR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the ClapperQR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
-    notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name', formato_clip:'Format',
+    notas:'Notes', notas_ph:'Take notes…', nombre_clip:'Clip name', formato_clip:'Format', nombre_camara:'Camera name',
     fmt_bmd_date:'Blackmagic + date (A001_20260703_C001)', fmt_dji:'DJI native (DJI_0001)', fmt_img:'iPhone / generic (IMG_0001)',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
     cancelar:'Cancel', aceptar:'OK', exportar_como:'Which format to export?', todos:'All three',
@@ -3261,7 +3269,7 @@ const I18N = {
     buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika ClapperQR katalogorako', sugerir_cuerpo:'Kaixo, optika hau ClapperQR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
-    notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena', formato_clip:'Formatua',
+    notas:'Oharrak', notas_ph:'Tomaren oharrak…', nombre_clip:'Klip izena', formato_clip:'Formatua', nombre_camara:'Kamera izena',
     fmt_bmd_date:'Blackmagic + data (A001_20260703_C001)', fmt_dji:'DJI natiboa (DJI_0001)', fmt_img:'iPhone / orokorra (IMG_0001)',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
     cancelar:'Utzi', aceptar:'Ados', exportar_como:'Zein formatu esportatu?', todos:'Hirurak',
@@ -3369,6 +3377,11 @@ function renderEdit(){
   document.getElementById('clip-name').textContent = formatClipName() + (nCams > 1 ? '  +' + (nCams - 1) : '');
   const cfSel = document.getElementById('clip-format');
   if(cfSel) cfSel.value = state.clipFormat || 'arri';
+  const cnInp = document.getElementById('cam-name');
+  if(cnInp && document.activeElement !== cnInp){
+    cnInp.value = (state.camNames && state.camNames[state.cam]) || '';
+    cnInp.placeholder = state.cam || 'A';
+  }
 
   setSegmented('goodTag', state.goodTag);
 
@@ -3424,8 +3437,10 @@ function formatClipName(cam){
   cam = cam || state.cam || 'A';
   const reel = state.card;
   const clip = (state.clipNos && state.clipNos[cam]) || 1;
+  // prefijo = nombre de cámara si se ha puesto (p.ej. "Ondarruphone"), si no la letra
+  const prefix = (state.camNames && state.camNames[cam]) ? state.camNames[cam] : cam;
   const fmt = CLIP_FORMATS[state.clipFormat] || CLIP_FORMATS.arri;
-  return fmt.fn(cam, reel, clip);
+  return fmt.fn(prefix, reel, clip);
 }
 // Poblar el selector de formato de clip y reaccionar al cambio.
 (function(){
@@ -3436,6 +3451,15 @@ function formatClipName(cam){
     o.dataset.i18n = f.i18n; o.textContent = t(f.i18n); sel.appendChild(o);
   });
   sel.addEventListener('change', ()=>{ state.clipFormat = sel.value; renderEdit(); saveState(); });
+  const cn = document.getElementById('cam-name');
+  if(cn) cn.addEventListener('input', ()=>{
+    if(!state.camNames) state.camNames = {A:'', B:'', C:''};
+    state.camNames[state.cam] = cn.value.trim();
+    // actualizar solo el nombre de clip mostrado (sin re-render que robe el foco)
+    const nCams = getCams().length;
+    document.getElementById('clip-name').textContent = formatClipName() + (nCams > 1 ? '  +' + (nCams - 1) : '');
+    saveState();
+  });
 })();
 
 /* ---- multicámara: lista de cámaras seleccionadas (orden A,B,C, nunca vacía) ---- */
