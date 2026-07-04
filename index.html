@@ -142,6 +142,11 @@
     border-radius:14px; padding:18px; }
   .confirm-msg{ color:var(--fg); font-size:15px; line-height:1.4; margin-bottom:16px;
     text-align:center; white-space:pre-line; }
+  .wn-body{ max-height:52vh; overflow:auto; text-align:left; margin:6px 0 14px; }
+  .wn-ver{ font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.06em; margin:12px 0 4px; }
+  .wn-ver:first-child{ margin-top:0; }
+  .wn-list{ margin:0 0 6px; padding-left:18px; }
+  .wn-list li{ font-size:13px; line-height:1.5; margin:3px 0; color:var(--fg); }
   .confirm-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .confirm-actions button{ height:46px; border-radius:8px; font-size:14px; font-weight:700; border:1px solid var(--border); }
   #confirm-cancel{ background:var(--bg-input); color:var(--fg); }
@@ -3167,6 +3172,7 @@ const DEFAULT_STATE = {
   pr:'', dir:'', dp:'',
   view:'edit', sub:'qr', lang:'es',
   lastPayload:null, lastClapPayload:null,
+  lastSeenVersion:null,   // última versión cuyas novedades ha visto el usuario
   log:[]
 };
 
@@ -3299,7 +3305,7 @@ const I18N = {
     toast_take_saved:'Toma guardada en el log de sesión',
     reset_confirm:'¿Reiniciar la sesión? Se perderá el registro de todas las tomas.',
     produccion:'Producción', director:'Director/a', dp:'Dir. de fotografía',
-    datos_produccion:'Datos de producción',
+    datos_produccion:'Datos de producción', novedades:'Novedades', entendido:'Entendido',
     qr_nivel:'Nivel del QR', qr_basico:'Básico', qr_completo:'Completo',
     qr_hint_basico:'Básico: escena, plano, toma, cámara, tarjeta, clip, hora del clap y toma buena.',
     qr_hint_extra:'Completo añade: Int/Ext, Día/Noche, fps, óptica, obturador, ISO, diafragma y WB.',
@@ -3329,7 +3335,7 @@ const I18N = {
     toast_take_saved:'Take saved to session log',
     reset_confirm:'Reset the session? All recorded takes will be lost.',
     produccion:'Production', director:'Director', dp:'Cinematographer',
-    datos_produccion:'Production info',
+    datos_produccion:'Production info', novedades:'What\'s new', entendido:'Got it',
     qr_nivel:'QR level', qr_basico:'Basic', qr_completo:'Full',
     qr_hint_basico:'Basic: scene, shot, take, camera, card, clip, clap time and good take.',
     qr_hint_extra:'Full adds: Int/Ext, Day/Night, fps, lens, shutter, ISO, aperture and WB.',
@@ -3359,7 +3365,7 @@ const I18N = {
     toast_take_saved:'Toma saioaren erregistroan gordeta',
     reset_confirm:'Saioa berrabiarazi? Erregistratutako toma guztiak galduko dira.',
     produccion:'Ekoizpena', director:'Zuzendaria', dp:'Argazki zuzendaria',
-    datos_produccion:'Ekoizpenaren datuak',
+    datos_produccion:'Ekoizpenaren datuak', novedades:'Nobedadeak', entendido:'Ados',
     qr_nivel:'QR maila', qr_basico:'Oinarrizkoa', qr_completo:'Osoa',
     qr_hint_basico:'Oinarrizkoa: eszena, plano, toma, kamera, txartela, klipa, klap ordua eta toma ona.',
     qr_hint_extra:'Osoak gehitzen du: Barn/Kanp, Eguna/Gaua, fps, optika, obturadorea, ISO, diafragma eta ZB.',
@@ -5000,6 +5006,68 @@ function resetSession(){
 document.getElementById('btn-reset').addEventListener('click', resetSession);
 
 /* ---- inicializacion ---- */
+/* ---- versión + novedades (changelog) ----
+   Al subir un cambio: incrementar APP_VERSION y añadir su entrada ARRIBA. El
+   index.html se sirve red-primero, así que al conectarse el usuario baja la
+   última versión; si es más nueva que la que vio, se le muestran las novedades. */
+const APP_VERSION = "1.0.0";
+const CHANGELOG = [
+  { v:"1.0.0", d:"2026-07-05", items:{
+    es:[
+      "Catálogo de ópticas buscable (cine + foto), disponible sin conexión",
+      "Multicámara: registra la toma en varias cámaras a la vez",
+      "Nivel del QR: Básico (ligero) o Completo",
+      "Formato y nombre de clip por cámara (A001C001, Ondarruphone001C003…)",
+      "Obturador en grados y diafragma en T-stop",
+      "Editor de tomas en el informe (marcar buena/mala y corregir después)",
+      "Diseño adaptado a tablet e iPhone en apaisado",
+      "Aviso de novedades al actualizar (esto mismo)",
+    ],
+    en:[
+      "Searchable lens catalog (cine + photo), available offline",
+      "Multicam: log the take on several cameras at once",
+      "QR level: Basic (light) or Full",
+      "Per-camera clip format and name (A001C001, Ondarruphone001C003…)",
+      "Shutter in degrees and T-stop aperture",
+      "Take editor in the report (flag good/bad and fix later)",
+      "Responsive design for tablet and landscape iPhone",
+      "What's-new notice on update (this)",
+    ],
+  }},
+];
+function _clItems(entry){
+  const it = entry.items || {};
+  return it[state.lang] || it.es || [];
+}
+function renderWhatsNew(entries){
+  const body = document.getElementById('whatsnew-body');
+  body.innerHTML = '';
+  entries.forEach(e=>{
+    const h = document.createElement('div'); h.className = 'wn-ver';
+    h.textContent = 'v' + e.v + '  ·  ' + e.d;
+    body.appendChild(h);
+    const ul = document.createElement('ul'); ul.className = 'wn-list';
+    _clItems(e).forEach(txt=>{ const li = document.createElement('li'); li.textContent = txt; ul.appendChild(li); });
+    body.appendChild(ul);
+  });
+  document.getElementById('whatsnew-title').textContent = t('novedades');
+  document.getElementById('whatsnew-ok').textContent = t('entendido');
+  document.getElementById('whatsnew-backdrop').classList.add('show');
+}
+function showWhatsNew(){
+  const last = state.lastSeenVersion;
+  if(last === APP_VERSION) return;          // ya al día
+  state.lastSeenVersion = APP_VERSION; saveState();
+  if(!last) return;                         // primera vez: solo marcar, no molestar
+  const nuevos = [];
+  for(const e of CHANGELOG){ if(e.v === last) break; nuevos.push(e); }
+  if(!nuevos.length) return;
+  // El HTML del modal está más abajo que este script: si aún no existe, esperar.
+  const run = ()=> renderWhatsNew(nuevos);
+  if(document.getElementById('whatsnew-backdrop')) run();
+  else document.addEventListener('DOMContentLoaded', run);
+}
+
 function init(){
   renderEdit();
   applyCollapsed();
@@ -5008,6 +5076,7 @@ function init(){
   let sub = state.sub || 'data';
   if(sub === 'qr' && !state.lastClapPayload) sub = 'data';
   setSub(sub);
+  showWhatsNew();
 }
 
 init();
@@ -5302,6 +5371,28 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
     <button id="export-cancel" class="export-cancel-btn" data-i18n="cancelar">Cancelar</button>
   </div>
 </div>
+
+<!-- Novedades al actualizar -->
+<div id="whatsnew-backdrop" class="modal-backdrop">
+  <div class="confirm-box" role="dialog" aria-modal="true">
+    <div class="confirm-msg" id="whatsnew-title">Novedades</div>
+    <div class="wn-body" id="whatsnew-body"></div>
+    <button id="whatsnew-ok" class="export-cancel-btn">Entendido</button>
+  </div>
+</div>
+<script>
+  (function(){
+    function setup(){
+      const bd = document.getElementById('whatsnew-backdrop');
+      if(!bd) return;
+      const close = ()=> bd.classList.remove('show');
+      document.getElementById('whatsnew-ok').addEventListener('click', close);
+      bd.addEventListener('click', (e)=>{ if(e.target === bd) close(); });
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+    else setup();
+  })();
+</script>
 
 <!-- Gestor de ópticas de la producción -->
 <div id="lens-backdrop" class="modal-backdrop">
