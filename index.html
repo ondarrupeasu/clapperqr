@@ -38,7 +38,7 @@
   #screen-log > .log-wrap-inner{ display:flex; flex-direction:column; height:100%; }
 
   #screen-calibrate{ display:none; height:100vh; overflow-y:auto; box-sizing:border-box;
-    padding: calc(130px + env(safe-area-inset-top)) 16px 32px; }
+    padding: calc(130px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 32px calc(16px + env(safe-area-inset-left)); }
   #screen-calibrate.active{ display:block; }
   .calib-title{ font-size:1.1rem; font-weight:600; margin-bottom:4px; max-width:920px; margin-left:auto; margin-right:auto; }
   .calib-desc{ font-size:0.82rem; opacity:0.6; margin-bottom:20px; line-height:1.4; max-width:920px; margin-left:auto; margin-right:auto; }
@@ -338,11 +338,11 @@
       gap:16px; padding:6px 14px; }
     #shared-header .topbar{ flex:0 0 auto; padding:0; }
     #shared-header .session-card{ flex:1 1 auto; padding:6px 12px; }
-    .session-date{ display:none; }
     .session-time{ font-size:13px; }
     .icon-btn{ width:34px; height:34px; font-size:16px; }
     #screen-edit{ padding-top:calc(64px + env(safe-area-inset-top)); }
     #screen-log{ padding-top:calc(64px + env(safe-area-inset-top)); }
+    #screen-calibrate{ padding-top:calc(64px + env(safe-area-inset-top)); }
     .btn-publicar{ left:auto; right:10px; bottom:10px; padding:0; background:none; }
     .btn-publicar button{ width:auto; max-width:none; margin:0; padding:11px 26px; }
   }
