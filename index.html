@@ -196,6 +196,7 @@
   .lens-search{ width:100%; box-sizing:border-box; background:var(--bg-input); border:1px solid var(--border);
     border-radius:8px; padding:11px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; }
   .lens-suggest{ border-style:solid; color:var(--fg-dim); font-weight:400; font-size:13px; }
+  .lens-clear{ border-style:solid; border-color:var(--accent); color:var(--accent); font-size:13px; }
   .lens-empty{ text-align:center; color:var(--fg-dim); font-family:var(--mono); font-size:12px; padding:18px 0; }
   .lens-form select{ width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px;
     padding:10px 12px; color:var(--fg); font-family:var(--sans); font-size:14px; box-sizing:border-box; }
@@ -3283,7 +3284,7 @@ const I18N = {
     lente:'Lente (mm)', obturador:'Obturador', diafragma:'Diafragma', wb:'Balance de blancos (K)',
     esferica:'Esférica', anamorfica:'Anamórfica', squeeze:'Squeeze',
     editar_toma:'Editar toma', borrar_toma:'Borrar', buena:'Buena', mala:'Mala', intext:'Int/Ext', dianoche:'Día/Noche', valor:'Valor', grados:'grados', toma_actualizada:'Toma actualizada', toma_borrada:'Toma borrada', borrar_confirm:'¿Borrar esta toma del informe?', log_hint:'Toca una toma para marcarla o corregir sus datos.',
-    optica:'Óptica', manual:'Manual', opticas_titulo:'Ópticas de la producción', anadir_optica:'+ Añadir óptica', cerrar:'Cerrar', nombre:'Nombre', focal:'Focal (mm)', tipo:'Tipo', guardar:'Guardar',
+    optica:'Óptica', manual:'Manual', opticas_titulo:'Ópticas de la producción', anadir_optica:'+ Añadir óptica', vaciar_opticas:'🗑 Vaciar lista', vaciar_opticas_confirm:'¿Vaciar toda la lista de ópticas de la producción?', cerrar:'Cerrar', nombre:'Nombre', focal:'Focal (mm)', tipo:'Tipo', guardar:'Guardar',
     buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de ClapperQR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de ClapperQR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
@@ -3313,7 +3314,7 @@ const I18N = {
     lente:'Lens (mm)', obturador:'Shutter', diafragma:'Aperture', wb:'White balance (K)',
     esferica:'Spherical', anamorfica:'Anamorphic', squeeze:'Squeeze',
     editar_toma:'Edit take', borrar_toma:'Delete', buena:'Good', mala:'Bad', intext:'Int/Ext', dianoche:'Day/Night', valor:'Value', grados:'degrees', toma_actualizada:'Take updated', toma_borrada:'Take deleted', borrar_confirm:'Delete this take from the report?', log_hint:'Tap a take to flag it or fix its data.',
-    optica:'Lens', manual:'Manual', opticas_titulo:'Production lenses', anadir_optica:'+ Add lens', cerrar:'Close', nombre:'Name', focal:'Focal length (mm)', tipo:'Type', guardar:'Save',
+    optica:'Lens', manual:'Manual', opticas_titulo:'Production lenses', anadir_optica:'+ Add lens', vaciar_opticas:'🗑 Clear list', vaciar_opticas_confirm:'Clear the whole production lens list?', cerrar:'Close', nombre:'Name', focal:'Focal length (mm)', tipo:'Type', guardar:'Save',
     buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the ClapperQR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the ClapperQR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
@@ -3343,7 +3344,7 @@ const I18N = {
     lente:'Lentea (mm)', obturador:'Obturadorea', diafragma:'Diafragma', wb:'Zuri balantzea (K)',
     esferica:'Esferikoa', anamorfica:'Anamorfikoa', squeeze:'Squeeze',
     editar_toma:'Editatu toma', borrar_toma:'Ezabatu', buena:'Ona', mala:'Txarra', intext:'Barn/Kanp', dianoche:'Eguna/Gaua', valor:'Balioa', grados:'graduak', toma_actualizada:'Toma eguneratua', toma_borrada:'Toma ezabatua', borrar_confirm:'Toma hau informetik ezabatu?', log_hint:'Ukitu toma bat markatzeko edo datuak zuzentzeko.',
-    optica:'Optika', manual:'Eskuz', opticas_titulo:'Ekoizpenaren optikak', anadir_optica:'+ Gehitu optika', cerrar:'Itxi', nombre:'Izena', focal:'Fokua (mm)', tipo:'Mota', guardar:'Gorde',
+    optica:'Optika', manual:'Eskuz', opticas_titulo:'Ekoizpenaren optikak', anadir_optica:'+ Gehitu optika', vaciar_opticas:'🗑 Hustu zerrenda', vaciar_opticas_confirm:'Ekoizpenaren optika-zerrenda osoa hustu?', cerrar:'Itxi', nombre:'Izena', focal:'Fokua (mm)', tipo:'Mota', guardar:'Gorde',
     buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika ClapperQR katalogorako', sugerir_cuerpo:'Kaixo, optika hau ClapperQR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
@@ -4827,6 +4828,9 @@ function renderLensList(){
     });
     item.appendChild(sel); item.appendChild(del); wrap.appendChild(item);
   });
+  // El botón "Vaciar lista" solo aparece si hay ópticas.
+  const clearBtn = document.getElementById('lens-clear-all');
+  if(clearBtn) clearBtn.style.display = (state.lenses && state.lenses.length) ? '' : 'none';
 }
 function openLensModal(){
   document.getElementById('lens-form').style.display = 'none';
@@ -4918,6 +4922,13 @@ function suggestLens(){
     document.getElementById('lens-close').addEventListener('click', closeLensModal);
     bd.addEventListener('click', (e)=>{ if(e.target === bd) closeLensModal(); });
     document.getElementById('lens-add').addEventListener('click', showLensForm);
+    document.getElementById('lens-clear-all').addEventListener('click', ()=>{
+      if(!(state.lenses && state.lenses.length)) return;
+      if(!confirm(t('vaciar_opticas_confirm'))) return;
+      state.lenses = [];
+      state.lensName = '';
+      saveState(); renderLensList(); renderEdit();
+    });
     document.getElementById('lens-catalog-open').addEventListener('click', openLensCatalog);
     document.getElementById('lens-catalog-back').addEventListener('click', ()=>{
       document.getElementById('lens-catalog-view').style.display = 'none';
@@ -5296,6 +5307,7 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
       <div class="lens-list" id="lens-list"></div>
       <button class="lens-add-btn" id="lens-catalog-open" data-i18n="buscar_catalogo">🔍 Buscar en el catálogo</button>
       <button class="lens-add-btn" id="lens-add" data-i18n="anadir_optica">+ Añadir óptica</button>
+      <button class="lens-add-btn lens-clear" id="lens-clear-all" data-i18n="vaciar_opticas" style="display:none">🗑 Vaciar lista</button>
       <button id="lens-close" class="export-cancel-btn" data-i18n="cerrar">Cerrar</button>
     </div>
     <div id="lens-catalog-view" style="display:none;">
