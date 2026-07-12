@@ -1,7 +1,7 @@
 {
   "version": 2,
   "updated": "2026-07-03",
-  "note": "Catálogo semilla de ClapperQR. cat: cine | photo. type: sph | ana. primes = focales fijas (mm). zooms = [[min,max]]. squeeze solo en anamórficas.",
+  "note": "Catálogo semilla de QRClappeR. cat: cine | photo. type: sph | ana. primes = focales fijas (mm). zooms = [[min,max]]. squeeze solo en anamórficas.",
   "lenses": [
     { "brand": "ARRI/Zeiss", "model": "Master Prime", "type": "sph", "cat": "cine", "primes": [12,14,16,18,21,25,27,32,35,40,50,65,75,100,135,150] },
     { "brand": "ARRI/Zeiss", "model": "Ultra Prime", "type": "sph", "cat": "cine", "primes": [8,10,12,14,16,20,24,28,32,40,50,65,85,100,135,180] },

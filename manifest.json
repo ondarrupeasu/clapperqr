@@ -1,6 +1,6 @@
 {
-  "name": "ClapperQR",
-  "short_name": "ClapperQR",
+  "name": "QRClappeR",
+  "short_name": "QRClappeR",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

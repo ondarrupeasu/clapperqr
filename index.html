@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
-<title>ClapperQR</title>
+<title>QRClappeR</title>
 <style>
   :root{
     --bg:#0b0b0c;
@@ -3302,10 +3302,10 @@ const I18N = {
     esferica:'Esférica', anamorfica:'Anamórfica', squeeze:'Squeeze',
     editar_toma:'Editar toma', borrar_toma:'Borrar', buena:'Buena', mala:'Mala', intext:'Int/Ext', dianoche:'Día/Noche', valor:'Valor', grados:'grados', toma_actualizada:'Toma actualizada', toma_borrada:'Toma borrada', borrar_confirm:'¿Borrar esta toma del informe?', log_hint:'Toca una toma para marcarla o corregir sus datos.',
     optica:'Óptica', manual:'Manual', opticas_titulo:'Ópticas de la producción', anadir_optica:'+ Añadir óptica', vaciar_opticas:'🗑 Vaciar lista', vaciar_opticas_confirm:'¿Vaciar toda la lista de ópticas de la producción?', cerrar:'Cerrar', nombre:'Nombre', focal:'Focal (mm)', tipo:'Tipo', guardar:'Guardar',
-    buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de ClapperQR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de ClapperQR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
+    buscar_catalogo:'🔍 Buscar en el catálogo', buscar_ph:'Marca, modelo o focal (p. ej. Cooke 32, Sony 24-70)', todas:'Todas', cine:'Cine', foto:'Foto', volver:'Volver', sugerir_optica:'✉︎ Sugerir una óptica que falta', catalogo_vacio:'Sin resultados. Prueba otra búsqueda o sugiere la óptica.', catalogo_escribe:'Escribe para buscar en el catálogo.', catalogo_focal:'¿Con qué focal (mm)?', sugerir_asunto:'Óptica para el catálogo de QRClappeR', sugerir_cuerpo:'Hola, me gustaría que añadierais esta óptica al catálogo de QRClappeR:\n\nMarca y modelo: \nFocal(es): \nEsférica/Anamórfica: \n\nGracias.', optica_anadida:'Óptica añadida a la producción',
     camara:'Cámara', tarjeta:'Tarjeta',
     good:'Toma buena', good_prev:'T.{n} ¿buena/mala?', publicar:'PUBLICAR',
-    notas:'Notas', notas_ph:'Notas de la toma…', notas_sesion:'Notas de sesión', notas_sesion_ph:'Notas generales de la sesión (decisiones, para la siguiente…)', import_titulo:'Importar / Restaurar sesión', import_reemplazar:'Reemplazar', import_anadir:'Añadir tomas', import_tomas:'tomas', import_ok:'Sesión importada ({n} tomas)', import_err_format:'No es un archivo válido de ClapperQR', import_desde_archivo:'Elegir archivo', import_pegar:'Pegar JSON', import_pegar_ph:'Pega aquí el texto JSON de la sesión…', continuar:'Continuar', nombre_clip:'Nombre de clip', formato_clip:'Formato', nombre_camara:'Nombre de cámara', multi_edit_hint:'Multicámara: selecciona una sola cámara para editar su formato y nombre.',
+    notas:'Notas', notas_ph:'Notas de la toma…', notas_sesion:'Notas de sesión', notas_sesion_ph:'Notas generales de la sesión (decisiones, para la siguiente…)', import_titulo:'Importar / Restaurar sesión', import_reemplazar:'Reemplazar', import_anadir:'Añadir tomas', import_tomas:'tomas', import_ok:'Sesión importada ({n} tomas)', import_err_format:'No es un archivo válido de QRClappeR', import_desde_archivo:'Elegir archivo', import_pegar:'Pegar JSON', import_pegar_ph:'Pega aquí el texto JSON de la sesión…', continuar:'Continuar', nombre_clip:'Nombre de clip', formato_clip:'Formato', nombre_camara:'Nombre de cámara', multi_edit_hint:'Multicámara: selecciona una sola cámara para editar su formato y nombre.',
     fmt_arri:'ARRI · RED · Sony · Canon (A001C001)', fmt_red_us:'RED · Blackmagic (A001_C001)', fmt_sony_t:'Sony Title (C0001)', fmt_bmd_date:'Blackmagic + fecha (A001_20260703_C001)', fmt_canon_xf:'Canon XF (AA0001)', fmt_pana:'Panasonic (P0000001)', fmt_dji:'DJI nativo (DJI_0001)', fmt_gopro:'GoPro (GX010001)', fmt_img:'iPhone / genérico (IMG_0001)',
     auto_avance:'Avance automático de toma', guardar_toma:'Guardar', guardado:'✓ Guardado',
     cancelar:'Cancelar', aceptar:'Aceptar', exportar_como:'¿Qué formato quieres exportar?', todos:'Los tres',
@@ -3332,10 +3332,10 @@ const I18N = {
     esferica:'Spherical', anamorfica:'Anamorphic', squeeze:'Squeeze',
     editar_toma:'Edit take', borrar_toma:'Delete', buena:'Good', mala:'Bad', intext:'Int/Ext', dianoche:'Day/Night', valor:'Value', grados:'degrees', toma_actualizada:'Take updated', toma_borrada:'Take deleted', borrar_confirm:'Delete this take from the report?', log_hint:'Tap a take to flag it or fix its data.',
     optica:'Lens', manual:'Manual', opticas_titulo:'Production lenses', anadir_optica:'+ Add lens', vaciar_opticas:'🗑 Clear list', vaciar_opticas_confirm:'Clear the whole production lens list?', cerrar:'Close', nombre:'Name', focal:'Focal length (mm)', tipo:'Type', guardar:'Save',
-    buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the ClapperQR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the ClapperQR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
+    buscar_catalogo:'🔍 Search the catalog', buscar_ph:'Brand, model or focal (e.g. Cooke 32, Sony 24-70)', todas:'All', cine:'Cine', foto:'Photo', volver:'Back', sugerir_optica:'✉︎ Suggest a missing lens', catalogo_vacio:'No results. Try another search or suggest the lens.', catalogo_escribe:'Type to search the catalog.', catalogo_focal:'Which focal length (mm)?', sugerir_asunto:'Lens for the QRClappeR catalog', sugerir_cuerpo:'Hi, I would like this lens added to the QRClappeR catalog:\n\nBrand and model: \nFocal length(s): \nSpherical/Anamorphic: \n\nThanks.', optica_anadida:'Lens added to production',
     camara:'Camera', tarjeta:'Card',
     good:'Good take', good_prev:'T.{n} good/bad?', publicar:'PUBLISH',
-    notas:'Notes', notas_ph:'Take notes…', notas_sesion:'Session notes', notas_sesion_ph:'General session notes (decisions, for next time…)', import_titulo:'Import / Restore session', import_reemplazar:'Replace', import_anadir:'Add takes', import_tomas:'takes', import_ok:'Session imported ({n} takes)', import_err_format:'Not a valid ClapperQR file', import_desde_archivo:'Choose file', import_pegar:'Paste JSON', import_pegar_ph:'Paste the session JSON text here…', continuar:'Continue', nombre_clip:'Clip name', formato_clip:'Format', nombre_camara:'Camera name', multi_edit_hint:'Multicam: select a single camera to edit its format and name.',
+    notas:'Notes', notas_ph:'Take notes…', notas_sesion:'Session notes', notas_sesion_ph:'General session notes (decisions, for next time…)', import_titulo:'Import / Restore session', import_reemplazar:'Replace', import_anadir:'Add takes', import_tomas:'takes', import_ok:'Session imported ({n} takes)', import_err_format:'Not a valid QRClappeR file', import_desde_archivo:'Choose file', import_pegar:'Paste JSON', import_pegar_ph:'Paste the session JSON text here…', continuar:'Continue', nombre_clip:'Clip name', formato_clip:'Format', nombre_camara:'Camera name', multi_edit_hint:'Multicam: select a single camera to edit its format and name.',
     fmt_bmd_date:'Blackmagic + date (A001_20260703_C001)', fmt_dji:'DJI native (DJI_0001)', fmt_img:'iPhone / generic (IMG_0001)',
     auto_avance:'Auto-advance take', guardar_toma:'Save', guardado:'✓ Saved',
     cancelar:'Cancel', aceptar:'OK', exportar_como:'Which format to export?', todos:'All three',
@@ -3362,10 +3362,10 @@ const I18N = {
     esferica:'Esferikoa', anamorfica:'Anamorfikoa', squeeze:'Squeeze',
     editar_toma:'Editatu toma', borrar_toma:'Ezabatu', buena:'Ona', mala:'Txarra', intext:'Barn/Kanp', dianoche:'Eguna/Gaua', valor:'Balioa', grados:'graduak', toma_actualizada:'Toma eguneratua', toma_borrada:'Toma ezabatua', borrar_confirm:'Toma hau informetik ezabatu?', log_hint:'Ukitu toma bat markatzeko edo datuak zuzentzeko.',
     optica:'Optika', manual:'Eskuz', opticas_titulo:'Ekoizpenaren optikak', anadir_optica:'+ Gehitu optika', vaciar_opticas:'🗑 Hustu zerrenda', vaciar_opticas_confirm:'Ekoizpenaren optika-zerrenda osoa hustu?', cerrar:'Itxi', nombre:'Izena', focal:'Fokua (mm)', tipo:'Mota', guardar:'Gorde',
-    buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika ClapperQR katalogorako', sugerir_cuerpo:'Kaixo, optika hau ClapperQR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
+    buscar_catalogo:'🔍 Bilatu katalogoan', buscar_ph:'Marka, modeloa edo fokua (adib. Cooke 32, Sony 24-70)', todas:'Denak', cine:'Zinema', foto:'Argazkia', volver:'Itzuli', sugerir_optica:'✉︎ Iradoki falta den optika', catalogo_vacio:'Emaitzarik ez. Saiatu beste bilaketa batekin edo iradoki optika.', catalogo_escribe:'Idatzi katalogoan bilatzeko.', catalogo_focal:'Zein fokurekin (mm)?', sugerir_asunto:'Optika QRClappeR katalogorako', sugerir_cuerpo:'Kaixo, optika hau QRClappeR katalogoan gehitzea nahiko nuke:\n\nMarka eta modeloa: \nFokua(k): \nEsferikoa/Anamorfikoa: \n\nEskerrik asko.', optica_anadida:'Optika ekoizpenari gehituta',
     camara:'Kamera', tarjeta:'Txartela',
     good:'Toma ona', good_prev:'T.{n} ona/txarra?', publicar:'ARGITARATU',
-    notas:'Oharrak', notas_ph:'Tomaren oharrak…', notas_sesion:'Saioaren oharrak', notas_sesion_ph:'Saioaren ohar orokorrak (erabakiak, hurrengorako…)', import_titulo:'Saioa inportatu / berreskuratu', import_reemplazar:'Ordeztu', import_anadir:'Tomak gehitu', import_tomas:'toma', import_ok:'Saioa inportatuta ({n} toma)', import_err_format:'Ez da baliozko ClapperQR fitxategia', import_desde_archivo:'Fitxategia aukeratu', import_pegar:'JSON itsatsi', import_pegar_ph:'Itsatsi hemen saioaren JSON testua…', continuar:'Jarraitu', nombre_clip:'Klip izena', formato_clip:'Formatua', nombre_camara:'Kamera izena', multi_edit_hint:'Kamera anitz: hautatu kamera bakarra bere formatua eta izena editatzeko.',
+    notas:'Oharrak', notas_ph:'Tomaren oharrak…', notas_sesion:'Saioaren oharrak', notas_sesion_ph:'Saioaren ohar orokorrak (erabakiak, hurrengorako…)', import_titulo:'Saioa inportatu / berreskuratu', import_reemplazar:'Ordeztu', import_anadir:'Tomak gehitu', import_tomas:'toma', import_ok:'Saioa inportatuta ({n} toma)', import_err_format:'Ez da baliozko QRClappeR fitxategia', import_desde_archivo:'Fitxategia aukeratu', import_pegar:'JSON itsatsi', import_pegar_ph:'Itsatsi hemen saioaren JSON testua…', continuar:'Jarraitu', nombre_clip:'Klip izena', formato_clip:'Formatua', nombre_camara:'Kamera izena', multi_edit_hint:'Kamera anitz: hautatu kamera bakarra bere formatua eta izena editatzeko.',
     fmt_bmd_date:'Blackmagic + data (A001_20260703_C001)', fmt_dji:'DJI natiboa (DJI_0001)', fmt_img:'iPhone / orokorra (IMG_0001)',
     auto_avance:'Toma automatikoki aurreratu', guardar_toma:'Gorde', guardado:'✓ Gordeta',
     cancelar:'Utzi', aceptar:'Ados', exportar_como:'Zein formatu esportatu?', todos:'Hirurak',
@@ -4461,7 +4461,7 @@ function buildCSV(){
 }
 
 /* ---- JSON canónico (sin pérdidas): metadatos + todas las tomas tal cual.
-   Es el formato pensado para importar en ClapperQR Desktop y para futuras
+   Es el formato pensado para importar en QRClappeR Desktop y para futuras
    integraciones. ---- */
 function buildJSON(){
   return JSON.stringify({
@@ -4479,7 +4479,7 @@ function buildJSON(){
 /* ---- Texto legible para compartir rápido (email/WhatsApp) ---- */
 function buildText(){
   const L = [];
-  L.push('ClapperQR — Log de sesión');
+  L.push('QRClappeR — Log de sesión');
   if(state.pr)  L.push('Producción: ' + state.pr);
   if(state.dir) L.push('Director/a: ' + state.dir);
   if(state.dp)  L.push('Dir. fotografía: ' + state.dp);
@@ -4810,7 +4810,7 @@ document.getElementById('btn-export').addEventListener('click', exportLog);
   else setup();
 })();
 
-/* ---- Importar / Restaurar sesión desde un JSON de ClapperQR ----
+/* ---- Importar / Restaurar sesión desde un JSON de QRClappeR ----
    Lee el JSON canónico que genera la propia app (buildJSON). Sirve para:
    copia de seguridad, cambiar de dispositivo o retomar un parte a medias.
    Dos modos: REEMPLAZAR (pisa la sesión actual) o AÑADIR tomas (fusiona,
@@ -4830,7 +4830,7 @@ function importSession(){
     const f = document.getElementById('import-file'); f.value = ''; f.click();
   }
 }
-// Valida un texto JSON y, si es un log de ClapperQR, abre el modal de modo
+// Valida un texto JSON y, si es un log de QRClappeR, abre el modal de modo
 // (Reemplazar / Añadir). Devuelve true si es válido.
 function _processImportText(text){
   let data;

@@ -1,4 +1,4 @@
-/* ClapperQR PWA — Service Worker.
+/* QRClappeR PWA — Service Worker.
    Hace que la app funcione SIN CONEXIÓN (crítico en rodaje con mala cobertura).
    Estrategia:
    - App shell precacheado en la instalación.
