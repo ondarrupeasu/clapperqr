@@ -439,6 +439,167 @@
 </head>
 <body>
 
+<!-- ================= LOGIN / REGISTRO (control de acceso) ================= -->
+<div id="auth-overlay" style="position:fixed; inset:0; z-index:100000; display:flex;
+     align-items:center; justify-content:center; background:#0d0d0f;
+     padding:calc(env(safe-area-inset-top) + 20px) 20px 20px;">
+  <div style="width:100%; max-width:360px;">
+    <div style="text-align:center; margin-bottom:22px;">
+      <div style="font-family:'SF Mono','Menlo',monospace; font-weight:700; letter-spacing:2px;
+           font-size:20px; color:#f3f1ea;">QRClappeR</div>
+      <div id="auth-subtitle" style="color:#9a9a96; font-size:12px; margin-top:6px;">Inicia sesión para usar la app</div>
+    </div>
+    <input id="auth-user" type="text" autocapitalize="none" autocomplete="username" placeholder="Usuario"
+      style="width:100%; background:#17181a; border:1px solid #2c2d30; color:#f3f1ea; border-radius:10px;
+             padding:13px 14px; font-size:16px; margin-bottom:10px;">
+    <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Contraseña"
+      style="width:100%; background:#17181a; border:1px solid #2c2d30; color:#f3f1ea; border-radius:10px;
+             padding:13px 14px; font-size:16px; margin-bottom:12px;">
+    <div id="auth-msg" style="min-height:18px; font-size:13px; margin-bottom:10px; text-align:center;"></div>
+    <button id="auth-submit"
+      style="width:100%; background:#ff4d2e; color:#fff; border:none; border-radius:10px;
+             padding:14px; font-weight:700; font-size:16px; cursor:pointer;">Entrar</button>
+    <div style="text-align:center; margin-top:16px;">
+      <a id="auth-toggle" href="#" style="color:#9a9a96; font-size:13px; text-decoration:none;">¿No tienes cuenta? Crear una</a>
+    </div>
+    <div id="auth-offline-note" style="display:none; color:#9a9a96; font-size:12px; text-align:center; margin-top:14px;">
+      Sin conexión: el primer inicio de sesión necesita internet.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= Control de acceso (cuentas QRClappeR) =================
+   La app es cliente offline: esto gestiona QUIÉN la usa (control "blando").
+   Login online → token firmado cacheado → funciona OFFLINE hasta caducar →
+   heartbeat al recuperar red (revalida + renueva). */
+const API_BASE = 'https://qrclapper-api.onrender.com';   // ← URL de la API en Render (ajustar tras desplegar)
+// Interruptor del control de acceso. FALSE = la app funciona sin login (como
+// hasta ahora). Poner TRUE cuando el backend esté desplegado y tengas tu cuenta
+// creada+activada, para NO bloquear a nadie mientras tanto.
+const AUTH_ENABLED = false;
+const AUTH_KEY = 'qr_auth';
+let authMode = 'login';   // 'login' | 'register'
+
+function authGet(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)); }catch(e){ return null; } }
+function authSet(a){ localStorage.setItem(AUTH_KEY, JSON.stringify(a)); }
+function authClear(){ localStorage.removeItem(AUTH_KEY); }
+
+// Lee la caducidad del token (payload base64url) SIN verificar la firma (eso lo
+// hace el servidor). Sirve solo para el gate offline.
+function authTokenExp(token){
+  try{
+    let b = token.split('.')[0].replace(/-/g,'+').replace(/_/g,'/');
+    b += '='.repeat((4 - b.length % 4) % 4);
+    return JSON.parse(atob(b)).exp || 0;
+  }catch(e){ return 0; }
+}
+function authValid(){
+  const a = authGet();
+  return !!(a && a.token && authTokenExp(a.token) > Date.now()/1000);
+}
+
+function authShow(){
+  document.getElementById('auth-overlay').style.display = 'flex';
+  const lo = document.getElementById('btn-logout'); if(lo) lo.style.display = 'none';
+  document.getElementById('auth-offline-note').style.display = navigator.onLine ? 'none' : 'block';
+}
+function authHide(){
+  document.getElementById('auth-overlay').style.display = 'none';
+  const lo = document.getElementById('btn-logout'); if(lo) lo.style.display = '';
+}
+
+function authSetMode(mode){
+  authMode = mode;
+  document.getElementById('auth-subtitle').textContent =
+    mode === 'login' ? 'Inicia sesión para usar la app' : 'Crea tu cuenta (la activará un administrador)';
+  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Entrar' : 'Crear cuenta';
+  document.getElementById('auth-toggle').textContent =
+    mode === 'login' ? '¿No tienes cuenta? Crear una' : '¿Ya tienes cuenta? Inicia sesión';
+  document.getElementById('auth-pass').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
+  document.getElementById('auth-msg').textContent = '';
+}
+
+async function authSubmit(){
+  const user = document.getElementById('auth-user').value.trim().toLowerCase();
+  const pass = document.getElementById('auth-pass').value;
+  const msg  = document.getElementById('auth-msg');
+  msg.style.color = '#ff4d2e';
+  if(!user || !pass){ msg.textContent = 'Rellena usuario y contraseña.'; return; }
+  if(!navigator.onLine){ msg.textContent = 'Necesitas conexión para ' + (authMode==='login'?'iniciar sesión':'registrarte') + '.'; return; }
+  const btn = document.getElementById('auth-submit');
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const path = authMode === 'login' ? '/api/login' : '/api/register';
+    const r = await fetch(API_BASE + path, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:user, password:pass })
+    });
+    const d = await r.json().catch(()=>({}));
+    if(authMode === 'register'){
+      if(r.ok && d.ok){
+        msg.style.color = '#2ecc71';
+        msg.textContent = 'Cuenta creada. Un administrador debe activarla.';
+        authSetMode('login');
+      }else{
+        msg.textContent = d.error || 'No se pudo crear la cuenta.';
+      }
+    }else{ // login
+      if(r.ok && d.ok && d.token){
+        authSet({ token:d.token, username:d.username || user });
+        document.getElementById('auth-pass').value = '';
+        authHide();
+      }else{
+        msg.textContent = d.error || 'No se pudo iniciar sesión.';
+      }
+    }
+  }catch(e){
+    msg.textContent = 'Error de red. Inténtalo de nuevo.';
+  }finally{
+    btn.disabled = false; authSetMode(authMode);
+  }
+}
+
+function authLogout(){
+  authClear(); authShow();
+}
+
+async function authHeartbeat(){
+  if(!navigator.onLine) return;
+  const a = authGet(); if(!a || !a.token) return;
+  try{
+    const r = await fetch(API_BASE + '/api/heartbeat', {
+      method:'POST', headers:{'Authorization':'Bearer ' + a.token}
+    });
+    if(r.status === 401 || r.status === 403){ authLogout(); return; }
+    const d = await r.json().catch(()=>({}));
+    if(d && d.revoked){ authLogout(); }
+    else if(d && d.ok && d.token){ authSet({ token:d.token, username:a.username }); }
+  }catch(e){ /* sin red: se reintenta luego */ }
+}
+
+function authInit(){
+  document.getElementById('auth-submit').addEventListener('click', authSubmit);
+  document.getElementById('auth-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') authSubmit(); });
+  document.getElementById('auth-toggle').addEventListener('click', e=>{ e.preventDefault(); authSetMode(authMode==='login'?'register':'login'); });
+  const lo = document.getElementById('btn-logout');
+  if(lo) lo.addEventListener('click', ()=>{ if(confirm('¿Cerrar sesión?')) authLogout(); });
+  if(!AUTH_ENABLED){   // gate desactivado: app abierta como siempre, sin botón de salir
+    document.getElementById('auth-overlay').style.display = 'none';
+    if(lo) lo.style.display = 'none';
+    return;
+  }
+  if(authValid()){ authHide(); authHeartbeat(); }
+  else { authShow(); }
+  // revalidar al recuperar red y cada 5 min
+  window.addEventListener('online', authHeartbeat);
+  setInterval(authHeartbeat, 5*60*1000);
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', authInit);
+else authInit();
+</script>
+
+
 <!-- ================= HEADER COMPARTIDO (fijo, siempre visible) ================= -->
 <div id="shared-header">
   <div class="edit-inner" style="padding-bottom:0;">
@@ -456,6 +617,13 @@
         <span class="session-date" id="session-date"></span>
       </div>
       <div class="session-actions">
+        <button id="btn-logout" class="icon-btn" title="Cerrar sesión" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
         <button id="btn-calibrate" class="icon-btn" title="Calibrar latencia Bluetooth">
           <svg id="btn-calibrate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
