@@ -528,6 +528,12 @@ async function authSubmit(){
   if(!navigator.onLine){ msg.textContent = 'Necesitas conexión para ' + (authMode==='login'?'iniciar sesión':'registrarte') + '.'; return; }
   const btn = document.getElementById('auth-submit');
   btn.disabled = true; btn.textContent = '…';
+  // El servidor (Render gratis) se duerme si no se usa: la primera petición
+  // puede tardar ~1 min en despertarlo. Avisamos para que no parezca colgado.
+  const slowHint = setTimeout(()=>{
+    msg.style.color = '#9a9a96';
+    msg.textContent = 'Conectando… la primera vez puede tardar hasta 1 minuto (el servidor se está despertando).';
+  }, 4000);
   try{
     const path = authMode === 'login' ? '/api/login' : '/api/register';
     const r = await fetch(API_BASE + path, {
@@ -547,6 +553,7 @@ async function authSubmit(){
       if(r.ok && d.ok && d.token){
         authSet({ token:d.token, username:d.username || user });
         document.getElementById('auth-pass').value = '';
+        msg.textContent = '';        // que no quede el aviso de "conectando…" pegado
         authHide();
       }else{
         msg.textContent = d.error || 'No se pudo iniciar sesión.';
@@ -555,6 +562,7 @@ async function authSubmit(){
   }catch(e){
     msg.textContent = 'Error de red. Inténtalo de nuevo.';
   }finally{
+    clearTimeout(slowHint);   // llegó respuesta: fuera el aviso de "despertando"
     // OJO: no llamar aquí a authSetMode() — borraría el mensaje que acabamos de
     // poner. Solo se restaura el botón.
     btn.disabled = false;
@@ -596,9 +604,11 @@ function authInit(){
   }
   if(authValid()){ authHide(); authHeartbeat(); }
   else { authShow(); }
-  // revalidar al recuperar red y cada 5 min
+  // Revalidar al recuperar red y cada 30 min. (Cada 5 min mantenía despierto el
+  // servidor de Render y quemaba horas de la cuota gratuita; 30 min basta de
+  // sobra para renovar el token y echar a los desactivados, y es invisible.)
   window.addEventListener('online', authHeartbeat);
-  setInterval(authHeartbeat, 5*60*1000);
+  setInterval(authHeartbeat, 30*60*1000);
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', authInit);
 else authInit();
