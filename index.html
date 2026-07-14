@@ -538,9 +538,9 @@ async function authSubmit(){
     const d = await r.json().catch(()=>({}));
     if(authMode === 'register'){
       if(r.ok && d.ok){
-        msg.style.color = '#2ecc71';
-        msg.textContent = 'Cuenta creada. Un administrador debe activarla.';
-        authSetMode('login');
+        authSetMode('login');            // primero cambia de modo (limpia el aviso)…
+        msg.style.color = '#2ecc71';     // …y DESPUÉS escribe el mensaje, si no se borraba
+        msg.textContent = '✓ Cuenta creada. Un administrador debe activarla antes de poder entrar.';
       }else{
         msg.textContent = d.error || 'No se pudo crear la cuenta.';
       }
@@ -556,7 +556,10 @@ async function authSubmit(){
   }catch(e){
     msg.textContent = 'Error de red. Inténtalo de nuevo.';
   }finally{
-    btn.disabled = false; authSetMode(authMode);
+    // OJO: no llamar aquí a authSetMode() — borraría el mensaje que acabamos de
+    // poner. Solo se restaura el botón.
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Entrar' : 'Crear cuenta';
   }
 }
 
