@@ -474,10 +474,9 @@
    Login online → token firmado cacheado → funciona OFFLINE hasta caducar →
    heartbeat al recuperar red (revalida + renueva). */
 const API_BASE = 'https://qrclapper-api.onrender.com';   // ← URL de la API en Render (ajustar tras desplegar)
-// Interruptor del control de acceso. FALSE = la app funciona sin login (como
-// hasta ahora). Poner TRUE cuando el backend esté desplegado y tengas tu cuenta
-// creada+activada, para NO bloquear a nadie mientras tanto.
-const AUTH_ENABLED = false;
+// Interruptor del control de acceso. TRUE = login obligatorio. Si algún día hay
+// que abrir la app de emergencia (backend caído, etc.), poner FALSE y desplegar.
+const AUTH_ENABLED = true;
 const AUTH_KEY = 'qr_auth';
 let authMode = 'login';   // 'login' | 'register'
 
