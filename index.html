@@ -5516,6 +5516,8 @@ function openLogEdit(idx){
   $('le-ap').value = e.ap ?? '';
   $('le-wb').value = e.wb ?? '';
   $('le-notes').value = e.notes || '';
+  $('le-tech-sc').value = e.techNoteSc || '';
+  $('le-tech-sh').value = e.techNoteSh || '';
   updateLeGoodBtns();
   $('logedit-title').textContent = t('editar_toma') + '  ·  ' + (e.sc ?? '—') + '/' + (e.sh ?? '—') + '/T' + (e.tk ?? '—') + (e.cam ? '  ' + e.cam : '');
   $('logedit-backdrop').classList.add('show');
@@ -5553,6 +5555,8 @@ function saveLogEdit(){
   e.ap = numOr($('le-ap').value, e.ap);
   e.wb = intOr($('le-wb').value, e.wb);
   e.notes = $('le-notes').value;
+  e.techNoteSc = $('le-tech-sc').value;
+  e.techNoteSh = $('le-tech-sh').value;
   e.toma_buena = leGood;
   const key = takenKey(e.cam, e.card, e.sc, e.sh, e.tk);
   e.good_enviado = leGood === 'buena' ? key : (leGood === 'mala' ? 'mala' : '');
@@ -6119,14 +6123,27 @@ function roleApply(){
      el sentido de tenerlas separadas.
    - Cambiar de ESCENA: caen las dos (los planos son de la escena que dejas). */
 function nuevoMontaje(field){
-  const limpia = (k, id)=>{
-    if(!state[k]) return;
-    state[k] = '';
-    const el = document.getElementById(id);
-    if(el) el.value = '';
+  if(field !== 'sh' && field !== 'sc') return;
+  // Volver a un plano YA RODADO (una retoma: se rueda la 7 de un plano que iba
+  // por la 6) no es un montaje nuevo, es el mismo de antes. Y sus notas no se
+  // perdieron: están en el log, en su última toma. Así que en vez de vaciar a
+  // ciegas, se recuperan solas; solo se vacían si ese plano no se ha rodado
+  // nunca, que es cuando sí es un montaje nuevo.
+  const ultima = (cumple)=>{
+    for(let i = state.log.length - 1; i >= 0; i--){ if(cumple(state.log[i])) return state.log[i]; }
+    return null;
   };
-  if(field === 'sh' || field === 'sc') limpia('techNoteSh', 'f-tech-note-sh');
-  if(field === 'sc') limpia('techNoteSc', 'f-tech-note-sc');
+  const pon = (k, id, v)=>{
+    state[k] = v || '';
+    const el = document.getElementById(id);
+    if(el) el.value = state[k];
+  };
+  const dePlano = ultima(e => e.sc === state.sc && e.sh === state.sh);
+  pon('techNoteSh', 'f-tech-note-sh', dePlano && dePlano.techNoteSh);
+  if(field === 'sc'){
+    const deEscena = ultima(e => e.sc === state.sc);
+    pon('techNoteSc', 'f-tech-note-sc', deEscena && deEscena.techNoteSc);
+  }
 }
 
 /* El "PUBLICAR" de la script: registra la toma en SU ficha y avanza. Sin
@@ -6581,6 +6598,10 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
         <button id="le-bad" class="le-gbtn bad">✗ <span data-i18n="mala">Mala</span></button>
       </div>
       <textarea id="le-notes" class="le-notes" data-i18n-ph="notas_ph" placeholder="Notas de la toma…"></textarea>
+      <!-- Las notas técnicas también se corrigen aquí: si no, quedaban escritas
+           en cada toma sin forma de arreglarlas desde el log. -->
+      <textarea id="le-tech-sc" class="le-notes" data-i18n-ph="notas_tec_escena_ph" placeholder="Notas técnicas · escena"></textarea>
+      <textarea id="le-tech-sh" class="le-notes" data-i18n-ph="notas_tec_plano_ph" placeholder="Notas técnicas · plano"></textarea>
       <div class="le-grid">
         <label><span data-i18n="escena">Escena</span><input id="le-sc" type="number" min="0" inputmode="numeric"></label>
         <label><span data-i18n="plano">Plano</span><input id="le-sh" type="number" min="0" inputmode="numeric"></label>
