@@ -71,11 +71,22 @@
     padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 16px) env(safe-area-inset-left); }
   .edit-inner{ max-width:560px; margin:0 auto; padding:14px 14px 100px; }
 
-  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:6px 2px 14px; }
+  /* gap: la caja de cuenta crece con el nombre; sin esto se pega a los idiomas. */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:6px 2px 14px; }
   .topbar h1{ font-family:var(--mono); font-size:15px; letter-spacing:.12em; font-weight:600; margin:0; color:var(--fg);}
   .icon-btn{ background:var(--bg-panel); border:1px solid var(--border); color:var(--fg);
     width:40px; height:40px; border-radius:8px; font-size:18px; display:flex; align-items:center; justify-content:center; }
   .icon-btn-danger{ color:var(--accent); }
+  /* Cuenta: nombre + salir en un mismo rectángulo (mismo lenguaje que el resto
+     de agrupaciones, p.ej. .squeeze-inline). Va a la izquierda, lejos de los
+     idiomas. Sin sesión (.plain) se ve la marca pelada, sin caja. */
+  .acct-chip{ display:flex; align-items:center; gap:2px; min-width:0; flex:0 1 auto;
+    background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:3px 3px 3px 10px; }
+  .acct-chip.plain{ background:transparent; border-color:transparent; padding:0; }
+  .acct-chip h1{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-chip .icon-btn{ width:30px; height:30px; background:transparent; border:none; color:var(--fg-dim); }
+  .acct-chip .icon-btn:active{ color:var(--fg); }
+  .topbar .lang-switch{ flex:0 0 auto; }
   .session-card{ display:flex; align-items:center; justify-content:space-between; }
   .session-card h2{ margin:0; }
   .session-info{ display:flex; flex-direction:column; gap:2px; }
@@ -539,6 +550,9 @@ function authRenderHeader(){
   const dentro = AUTH_ENABLED && authValid() && a && a.username;
   if(t) t.textContent = dentro ? a.username : 'QRClappeR';
   if(lo) lo.style.display = dentro ? '' : 'none';
+  // Sin sesión no hay icono: una caja con solo la marca dentro sobraría.
+  const chip = document.getElementById('hdr-acct');
+  if(chip) chip.classList.toggle('plain', !dentro);
 }
 function authShow(){
   document.getElementById('auth-overlay').style.display = 'flex';
@@ -729,8 +743,8 @@ else authInit();
     <div class="topbar">
       <!-- Con sesión iniciada muestra el USUARIO; si no, la marca. Sin data-i18n:
            "QRClappeR" es igual en los tres idiomas y el usuario no se traduce. -->
-      <h1 id="hdr-title">QRClappeR</h1>
-      <div style="display:flex; align-items:center; gap:8px; flex:0 0 auto;">
+      <div class="acct-chip plain" id="hdr-acct">
+        <h1 id="hdr-title">QRClappeR</h1>
         <button id="btn-logout" class="icon-btn" title="Tu cuenta" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -738,6 +752,8 @@ else authInit();
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
         </button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex:0 0 auto;">
         <div class="lang-switch segmented" data-field="lang">
           <button data-value="eu">EU</button>
           <button data-value="es">ES</button>
