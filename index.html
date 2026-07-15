@@ -73,7 +73,7 @@
 
   /* gap: la caja de cuenta crece con el nombre; sin esto se pega a los idiomas. */
   .topbar{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:6px 2px 14px; }
-  .topbar h1{ font-family:var(--mono); font-size:15px; letter-spacing:.12em; font-weight:600; margin:0; color:var(--fg);}
+  #hdr-title{ font-family:var(--mono); font-size:15px; letter-spacing:.12em; font-weight:600; margin:0; color:var(--fg);}
   .icon-btn{ background:var(--bg-panel); border:1px solid var(--border); color:var(--fg);
     width:40px; height:40px; border-radius:8px; font-size:18px; display:flex; align-items:center; justify-content:center; }
   .icon-btn-danger{ color:var(--accent); }
@@ -81,11 +81,16 @@
      de agrupaciones, p.ej. .squeeze-inline). Va a la izquierda, lejos de los
      idiomas. Sin sesión (.plain) se ve la marca pelada, sin caja. */
   .acct-chip{ display:flex; align-items:center; gap:2px; min-width:0; flex:0 1 auto;
-    background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:3px 3px 3px 10px; }
+    background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:3px 3px 3px 10px;
+    font: inherit; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .acct-chip.plain{ background:transparent; border-color:transparent; padding:0; }
-  .acct-chip h1{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .acct-chip .icon-btn{ width:30px; height:30px; background:transparent; border:none; color:var(--fg-dim); }
-  .acct-chip .icon-btn:active{ color:var(--fg); }
+  .acct-chip #hdr-title{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-chip .acct-ico{ width:30px; height:30px; color:var(--fg-dim); flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; }
+  .acct-chip:active{ background:var(--bg-panel); }
+  .acct-chip:active .acct-ico{ color:var(--fg); }
+  /* Sin sesión no hay menú que abrir: ni caja, ni toque. */
+  .acct-chip.plain{ pointer-events:none; }
   .topbar .lang-switch{ flex:0 0 auto; }
 
   /* ---- Roles (prototipo) --------------------------------------------------
@@ -810,8 +815,8 @@ function authInit(){
   document.getElementById('auth-submit').addEventListener('click', authSubmit);
   document.getElementById('auth-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') authSubmit(); });
   document.getElementById('auth-toggle').addEventListener('click', e=>{ e.preventDefault(); authSetMode(authMode==='login'?'register':'login'); });
-  const lo = document.getElementById('btn-logout');
-  if(lo) lo.addEventListener('click', acctShow);
+  const chip = document.getElementById('hdr-acct');
+  if(chip) chip.addEventListener('click', acctShow);
   document.getElementById('acct-close').addEventListener('click', acctHide);
   document.getElementById('acct-changepass').addEventListener('click', ()=> acctMode('pass'));
   document.querySelectorAll('#acct-role button').forEach(b=>{
@@ -862,17 +867,20 @@ else authInit();
     <div class="topbar">
       <!-- Con sesión iniciada muestra el USUARIO; si no, la marca. Sin data-i18n:
            "QRClappeR" es igual en los tres idiomas y el usuario no se traduce. -->
-      <div class="acct-chip plain" id="hdr-acct">
-        <h1 id="hdr-title">QRClappeR</h1>
+      <!-- Toda la caja es el botón: dentro hay rol, respaldo y contraseña, así
+           que el objetivo de toque es el conjunto, no solo el icono. Un botón
+           no puede contener otro botón: el icono es un span. -->
+      <button class="acct-chip plain" id="hdr-acct" title="Tu cuenta">
+        <span id="hdr-title">QRClappeR</span>
         <span class="role-badge" id="role-badge"></span>
-        <button id="btn-logout" class="icon-btn" title="Tu cuenta" style="display:none">
+        <span class="acct-ico" id="btn-logout" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-        </button>
-      </div>
+        </span>
+      </button>
       <div style="display:flex; align-items:center; gap:8px; flex:0 0 auto;">
         <div class="lang-switch segmented" data-field="lang">
           <button data-value="eu">EU</button>
