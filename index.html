@@ -4417,7 +4417,9 @@ document.querySelectorAll('.sst-edit .step-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const field = btn.closest('.sst-edit').dataset.field;
     const dir = parseInt(btn.dataset.dir, 10);
+    const antes = state[field];
     state[field] = Math.max(1, state[field] + dir);
+    if(state[field] !== antes) nuevoMontaje(field);
     // Cambiar de tarjeta = nuevo reel: el clip de las cámaras seleccionadas vuelve a 1.
     if(field === 'card'){
       if(!state.clipNos) state.clipNos = {A:1, B:1, C:1};
@@ -4645,7 +4647,12 @@ function openKeypad(opts){
       el.addEventListener('click', ()=>{
         const f = el.closest('.sst-edit').dataset.field;
         openKeypad({ title:t(KP_KEYS[f]), value:state[f], min:1, maxDigits:4,
-          onConfirm:(v)=>{ state[f] = v; renderEdit(); saveState(); } });
+          onConfirm:(v)=>{
+            const antes = state[f];
+            state[f] = v;
+            if(v !== antes) nuevoMontaje(f);   // el otro camino: tocar el número
+            renderEdit(); saveState();
+          } });
       });
     });
 
@@ -6067,6 +6074,18 @@ function roleApply(){
   // La script no claca: su botón registra la toma y avanza.
   const btn = document.getElementById('btn-publicar');
   if(btn) btn.textContent = (r === 'script') ? 'SIGUIENTE' : t('publicar');
+}
+
+/* Cambiar de plano = otro montaje: la nota técnica (filtros, ND…) deja de
+   valer. Se vacía para que un filtro que ya no está puesto no siga viajando a
+   postpro en las tomas siguientes: una nota rancia engaña más que no tenerla.
+   También al cambiar de escena, que es un cambio de montaje aún mayor. */
+function nuevoMontaje(field){
+  if(field !== 'sh' && field !== 'sc') return;
+  if(!state.techNote) return;
+  state.techNote = '';
+  const tn = document.getElementById('f-tech-note');
+  if(tn) tn.value = '';
 }
 
 /* El "PUBLICAR" de la script: registra la toma en SU ficha y avanza. Sin
