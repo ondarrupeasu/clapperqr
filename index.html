@@ -100,10 +100,19 @@
      hace todo = MIX (la app de siempre).
      El rol es de ESTE aparato, no de la cuenta: los dos entran con el mismo
      usuario y cada uno elige el suyo. */
-  body.role-script #card-camara,
+  /* A la script le sobra lo TÉCNICO (óptica, ISO, diafragma, WB: eso lo lleva
+     el auxiliar), el QR y la calibración de latencia — todo eso solo sirve si
+     clacas tú.
+     Pero la IDENTIFICACIÓN (cámara, tarjeta, nombre de clip) se queda: es lo
+     que ella apunta en su ficha y es el nexo con el que se casan las dos
+     fichas luego. Sin cámara no hay ni llave para fusionar. */
   body.role-script #card-ajustes,
-  body.role-script #field-qr-level{ display:none; }   /* la script no genera el QR */
-  body.role-aux #card-flags{ display:none; }
+  body.role-script #field-qr-level,
+  body.role-script #btn-calibrate{ display:none; }
+  /* INT/EXT y DÍA/NOCHE los lleva la script; la valoración también (se la da el
+     director). El auxiliar está cambiando ópticas cuando eso se decide. */
+  body.role-aux #card-flags,
+  body.role-aux #grp-escena-tipo{ display:none; }
   /* La script vive en las notas: sin los ajustes de cámara sobra sitio. */
   body.role-script #f-note{ min-height:150px; }
   body.role-script .take-tag-row{ margin-bottom:10px; }
@@ -359,6 +368,10 @@
     color:#1a0e08; border:none; border-radius:10px; padding:16px; font-family:var(--mono);
     font-size:15px; font-weight:700; letter-spacing:.2em; }
   .btn-publicar button:active{ filter:brightness(.9); }
+  /* Confirmación: el coral es para ACTUAR, así que "ya está hecho" no puede ser
+     coral. Estado por intensidad de blanco, como el resto de la app. */
+  .btn-publicar button.confirmado{ background:var(--bg-panel); color:var(--fg);
+    border:1px solid var(--border); filter:none; }
 
   /* ---- responsive: en pantallas anchas (tablet / apaisado) las tarjetas
      se reparten en 2 columnas para aprovechar el ancho y ver más sin scroll ---- */
@@ -1008,6 +1021,24 @@ else authInit();
           </div>
         </div>
       </div>
+      <!-- INT/EXT y DÍA/NOCHE describen la ESCENA, no la cámara: estaban en
+           Ajustes (junto a la óptica y el ISO), donde la script no los ve. -->
+      <div id="grp-escena-tipo">
+        <div class="seg-group" style="margin-top:10px;">
+          <div class="segmented" data-field="int">
+            <button data-value="INT">INT</button>
+            <button data-value="EXT">EXT</button>
+          </div>
+        </div>
+        <div class="seg-group" style="margin-bottom:0;">
+          <div class="segmented dn-seg" data-field="dn">
+            <button data-value="DIA" data-i18n="dia">DÍA</button>
+            <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
+            <button data-value="AMANECER" data-i18n="amanecer">AMANECER</button>
+            <button data-value="ANOCHECER" data-i18n="anochecer">ANOCHECER</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Flags -->
@@ -1066,20 +1097,6 @@ else authInit();
     <div class="card collapsed" id="card-ajustes">
       <h2 class="collapsible" data-toggle="card-ajustes"><span data-i18n="ajustes">Ajustes</span><span class="chev">▾</span></h2>
       <div class="card-body">
-        <div class="seg-group">
-          <div class="segmented" data-field="int">
-            <button data-value="INT">INT</button>
-            <button data-value="EXT">EXT</button>
-          </div>
-        </div>
-        <div class="seg-group">
-          <div class="segmented dn-seg" data-field="dn">
-            <button data-value="DIA" data-i18n="dia">DÍA</button>
-            <button data-value="NOCHE" data-i18n="noche">NOCHE</button>
-            <button data-value="AMANECER" data-i18n="amanecer">AMANECER</button>
-            <button data-value="ANOCHECER" data-i18n="anochecer">ANOCHECER</button>
-          </div>
-        </div>
         <div class="seg-group lens-row">
           <div class="segmented" data-field="lensType">
             <button data-value="sph" data-i18n="esferica">Esférica</button>
@@ -4259,6 +4276,9 @@ function renderEdit(){
     goodLabel.textContent = t('good_prev').replace('{n}', state.lastTakeNumber);
   }
   updateSaveTakeBtn();
+  // Al final: applyI18n() acaba de reponer "PUBLICAR" en el botón por su
+  // data-i18n, y en el rol de script debe poner "SIGUIENTE".
+  if(typeof roleApply === 'function') roleApply();
 }
 
 /* Botón "Guardar toma": activo (rojo) si hay cambios sin guardar,
@@ -6032,7 +6052,13 @@ function roleApply(){
 
 /* El "PUBLICAR" de la script: registra la toma en SU ficha y avanza. Sin
    cuenta atrás, sin QR y sin clap_ts (ese es del que claca). */
+let _sigOcupado = false;
 function siguienteToma(){
+  // El auxiliar tiene cuenta atrás, flash y QR diciéndole "ha pasado algo". La
+  // script solo vería cambiar un número: si no lo pilla, vuelve a pulsar y
+  // registra una toma que nunca existió. Por eso el botón se confirma a sí
+  // mismo y no admite un segundo toque mientras tanto.
+  if(_sigOcupado) return;
   if(state.dirty) saveCurrentTake();
   const nowIso = new Date().toISOString();
   getCams().forEach(c => {
@@ -6043,11 +6069,23 @@ function siguienteToma(){
       int: state.int, dn: state.dn,
     });
   });
+  const registrada = state.tk;
   state.lastTakeNumber = state.tk;
   state.tk = (state.tk || 1) + 1;
   state.goodTag = null; state.noteText = ''; state.dirty = false;
   saveState();
-  renderEdit();
+  renderEdit();                       // repinta (y repone el texto del botón)
+
+  const btn = document.getElementById('btn-publicar');
+  _sigOcupado = true;
+  btn.classList.add('confirmado');    // …así que el aviso se pone DESPUÉS
+  btn.textContent = '✓ TOMA ' + registrada + ' REGISTRADA';
+  showToast('Toma ' + registrada + ' registrada · vas por la ' + state.tk);
+  setTimeout(()=>{
+    _sigOcupado = false;
+    btn.classList.remove('confirmado');
+    roleApply();
+  }, 1500);
 }
 
 function init(){
