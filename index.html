@@ -515,6 +515,8 @@ function authShow(){
 function authHide(){
   document.getElementById('auth-overlay').style.display = 'none';
   authRenderHeader();
+  // Recién entrado: traer los ajustes de la cuenta (kit de ópticas, preferencias).
+  if(typeof syncPull === 'function') syncPull();
 }
 
 function authSetMode(mode){
@@ -580,7 +582,11 @@ async function authSubmit(){
 }
 
 function authLogout(){
-  authClear(); authShow();
+  authClear();
+  // Olvidar de quién eran los ajustes de este dispositivo: si entra otro
+  // usuario, no debe heredarlos ni subirlos a su cuenta sin tocar nada.
+  try{ localStorage.removeItem('qr_sync_meta'); }catch(e){}
+  authShow();
 }
 
 async function authHeartbeat(){
@@ -3411,11 +3417,149 @@ function loadState(){
 }
 function saveState(){
   localStorage.setItem('claquetaState', JSON.stringify(state));
+  if(typeof syncTouch === 'function') syncTouch();
 }
 let state = loadState();
 if(!state.sessionDate){
   state.sessionDate = new Date().toISOString().slice(0,10);
   saveState();
+}
+
+/* ================= AJUSTES EN LA NUBE ==================================
+   Tu kit de ópticas y tus preferencias te siguen a cualquier dispositivo.
+
+   QUÉ SE SUBE: SOLO ajustes (ópticas, cámaras, preferencias).
+   QUÉ NO: el parte de rodaje (pr/dir/dp, escena, toma, notas, log). Son datos
+   de producción y de personas, y NO salen del dispositivo.
+
+   Sin conexión no molesta: si falla, se reintenta al recuperar red.
+   Ante conflicto gana la edición más reciente (para ajustes es aceptable;
+   para el parte NO lo sería, por eso el parte no se sincroniza).
+   ====================================================================== */
+const SYNC_KEYS = ['lenses','camNames','clipFormats','cams','fps','lensType',
+                   'squeeze','apMode','shtMode','qrLevel','autoAdvance',
+                   'negativeData','lang'];
+const SYNC_META = 'qr_sync_meta';
+const SYNC_BT_KEY = 'claptag_bt_latency_ms';
+let _syncApplying = false;     // aplicando lo del servidor: no marcar como cambio local
+let _syncSnapshot = null;      // último estado conocido de los ajustes
+let _syncTimer = null;
+
+function syncMeta(){
+  try{ return JSON.parse(localStorage.getItem(SYNC_META)) || {updatedAt:0, user:null}; }
+  catch(e){ return {updatedAt:0, user:null}; }
+}
+function syncMetaSet(updatedAt){
+  const a = (typeof authGet === 'function') ? authGet() : null;
+  localStorage.setItem(SYNC_META, JSON.stringify({
+    updatedAt: updatedAt, user: (a && a.username) || null
+  }));
+}
+/* ¿Los ajustes de este dispositivo son de quien está dentro ahora? Si entró otro
+   usuario, NO son suyos: ni se los subimos ni los damos por buenos. */
+function syncOwned(){
+  const a = (typeof authGet === 'function') ? authGet() : null;
+  const m = syncMeta();
+  return !!(a && a.username && m.user && m.user === a.username);
+}
+
+function collectSettings(){
+  const o = {};
+  SYNC_KEYS.forEach(k => { if(state[k] !== undefined) o[k] = state[k]; });
+  const bt = localStorage.getItem(SYNC_BT_KEY);
+  if(bt !== null) o._btLatency = parseInt(bt, 10) || 0;
+  return o;
+}
+
+function applySettings(data){
+  if(!data || typeof data !== 'object') return false;
+  let changed = false;
+  SYNC_KEYS.forEach(k => {
+    if(!(k in data)) return;
+    if(JSON.stringify(state[k]) !== JSON.stringify(data[k])){ state[k] = data[k]; changed = true; }
+  });
+  if('_btLatency' in data) localStorage.setItem(SYNC_BT_KEY, String(data._btLatency | 0));
+  if(changed){
+    _syncApplying = true;
+    saveState();
+    _syncApplying = false;
+  }
+  return changed;
+}
+
+/* Detecta cambios en los ajustes comparando con la última foto conocida. Así no
+   hay que acordarse de avisar desde cada sitio que toca un ajuste. */
+function syncTouch(){
+  if(_syncApplying) return;
+  const now = JSON.stringify(collectSettings());
+  if(_syncSnapshot === null){ _syncSnapshot = now; return; }
+  if(now === _syncSnapshot) return;
+  _syncSnapshot = now;
+  syncMetaSet(Date.now());
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncPush, 3000);   // agrupa ráfagas de cambios
+}
+
+async function syncPush(){
+  const a = (typeof authGet === 'function') ? authGet() : null;
+  if(!a || !a.token || !navigator.onLine) return;
+  const meta = syncMeta();
+  const updatedAt = meta.updatedAt || Date.now();
+  try{
+    const r = await fetch(API_BASE + '/api/settings', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + a.token},
+      body: JSON.stringify({ data: collectSettings(), updated_at: updatedAt })
+    });
+    if(!r.ok) return;                       // sin red o token caduco: se reintenta
+    const d = await r.json();
+    if(d && d.ok && d.stored === false && d.data){
+      // El servidor tenía algo MÁS NUEVO: nos quedamos con lo suyo en vez de
+      // pisarlo (pasa si este dispositivo estuvo sin red).
+      if(applySettings(d.data)) syncRepaint();
+      syncMetaSet(d.updated_at);
+      _syncSnapshot = JSON.stringify(collectSettings());
+    }
+  }catch(e){ /* sin red: se reintenta al volver */ }
+}
+
+async function syncPull(){
+  const a = (typeof authGet === 'function') ? authGet() : null;
+  if(!a || !a.token || !navigator.onLine) return;
+  try{
+    const r = await fetch(API_BASE + '/api/settings', {
+      headers:{'Authorization':'Bearer ' + a.token}
+    });
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d || !d.ok) return;
+    const meta = syncMeta();
+    if(!d.data){
+      // Cuenta sin ajustes en la nube. Solo subimos los de este dispositivo si
+      // son SUYOS; si aquí había otro usuario, esperamos a que él los cambie.
+      if(syncOwned() && meta.updatedAt > 0) syncPush();
+      return;
+    }
+    if(!syncOwned() || d.updated_at > meta.updatedAt){
+      if(applySettings(d.data)) syncRepaint();
+      syncMetaSet(d.updated_at);
+      _syncSnapshot = JSON.stringify(collectSettings());
+    } else if(meta.updatedAt > d.updated_at){
+      syncPush();
+    }
+  }catch(e){ /* sin red */ }
+}
+
+function syncRepaint(){
+  if(typeof renderEdit === 'function') renderEdit();
+  if(typeof renderLensList === 'function') renderLensList();
+}
+
+function syncInit(){
+  _syncSnapshot = JSON.stringify(collectSettings());
+  if(typeof authValid === 'function' && authValid()) syncPull();
+  window.addEventListener('online', syncPull);
+  setInterval(()=>{ if(typeof authValid === 'function' && authValid()) syncPull(); }, 30*60*1000);
 }
 
 /* ---- helpers de formato y steppers ---- */
@@ -5434,6 +5578,7 @@ function showWhatsNew(){
 
 function init(){
   renderEdit();
+  syncInit();
   applyCollapsed();
   if(state.lastPayload) renderDataView(state.lastPayload);
   switchScreen(state.view || 'edit');
@@ -5706,12 +5851,14 @@ document.getElementById('calib-slider').addEventListener('input', function(){
 document.getElementById('btn-calib-save').addEventListener('click', ()=>{
   const val = parseInt(document.getElementById('calib-slider').value, 10);
   localStorage.setItem(CALIB_STORAGE_KEY, val);
+  syncTouch();   // no pasa por saveState: hay que avisar a mano
   calibUpdateUI();
   showToast(val > 0 ? `Compensación de ${val} ms guardada` : 'Compensación eliminada');
 });
 
 document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
   localStorage.removeItem(CALIB_STORAGE_KEY);
+  syncTouch();
   document.getElementById('calib-slider').value = 0;
   document.getElementById('calib-slider-val').textContent = '0 ms';
   calibMeasurements = [];
