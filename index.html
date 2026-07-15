@@ -3786,10 +3786,18 @@ async function backupPull(){
   }catch(e){ return false; }
 }
 
-/* Lo que se respalda: TODO el parte (esto sí incluye producción y notas). */
+/* Lo que se respalda: TODO el parte (producción, notas, escena, tomas…).
+   Entre los dos bloques (ajustes + parte) se guarda el estado entero: abres la
+   cuenta en otro equipo y está como lo dejaste.
+
+   CADA DATO TIENE UN SOLO DUEÑO: los ajustes (kit de ópticas, idioma…) NO se
+   meten aquí porque ya viajan en su bloque. Si fuesen en los dos, cada bloque
+   tendría su propia fecha y el respaldo podría pisar unos ajustes recién
+   traídos con una copia vieja de sí mismos. */
 function collectParte(){
   const p = JSON.parse(JSON.stringify(state));
   delete p.lastPayload; delete p.lastClapPayload;   // se regeneran solos
+  if(typeof SYNC_KEYS !== 'undefined') SYNC_KEYS.forEach(k => { delete p[k]; });
   return p;
 }
 
