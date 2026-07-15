@@ -569,8 +569,8 @@ function authShow(){
 function authHide(){
   document.getElementById('auth-overlay').style.display = 'none';
   authRenderHeader();
-  // Recién entrado: traer los ajustes de la cuenta (kit de ópticas, preferencias).
-  if(typeof syncPull === 'function') syncPull();
+  // Recién entrado: traer lo de la cuenta (ajustes primero, luego el parte).
+  if(typeof syncLogin === 'function') syncLogin();
 }
 
 function authSetMode(mode){
@@ -3616,6 +3616,9 @@ function collectSettings(){
   SYNC_KEYS.forEach(k => { if(state[k] !== undefined) o[k] = state[k]; });
   const bt = localStorage.getItem(SYNC_BT_KEY);
   if(bt !== null) o._btLatency = parseInt(bt, 10) || 0;
+  // El respaldo es de la CUENTA, no del aparato: si lo activas en el móvil,
+  // el Mac tiene que enterarse (si no, allí nunca se descargaría nada).
+  o._backupOn = (typeof backupOn === 'function') ? backupOn() : false;
   return o;
 }
 
@@ -3627,6 +3630,7 @@ function applySettings(data){
     if(JSON.stringify(state[k]) !== JSON.stringify(data[k])){ state[k] = data[k]; changed = true; }
   });
   if('_btLatency' in data) localStorage.setItem(SYNC_BT_KEY, String(data._btLatency | 0));
+  if('_backupOn' in data && typeof backupSetOn === 'function') backupSetOn(!!data._backupOn);
   if(changed){
     _syncApplying = true;
     saveState();
@@ -3698,6 +3702,15 @@ async function syncPull(){
   }catch(e){ /* sin red */ }
 }
 
+/* Al entrar (o al recuperar red). EL ORDEN IMPORTA: los ajustes traen el
+   interruptor del respaldo, que vive en la cuenta. Si bajásemos el parte antes,
+   un equipo recién estrenado lo tendría apagado y no descargaría nada. */
+async function syncLogin(){
+  await syncPull();
+  await backupPull();
+  await backupSync();
+}
+
 function syncRepaint(){
   if(typeof renderEdit === 'function') renderEdit();
   if(typeof renderLensList === 'function') renderLensList();
@@ -3715,26 +3728,62 @@ function syncRepaint(){
    funcionando cuando el contenido vaya cifrado y el servidor no pueda leerlo.
    El `rev` evita que dos dispositivos se pisen: subir exige la rev que bajaste.
    ====================================================================== */
-const BK_ON = 'qr_backup_on';       // el usuario lo activa; por defecto NO
+const BK_ON = 'qr_backup_on';       // lo activa el usuario; viaja con la CUENTA
 const BK_REV = 'qr_backup_rev';     // rev del servidor que tenemos de base
 const BK_AT = 'qr_backup_at';       // cuándo se subió por última vez
-let _bkTimer = null, _bkBusy = false;
+const BK_LOCAL_AT = 'qr_backup_local_at';   // último cambio del parte AQUÍ
+let _bkTimer = null, _bkBusy = false, _bkApplying = false;
 
 function backupOn(){ return localStorage.getItem(BK_ON) === '1'; }
 function backupSetOn(v){ localStorage.setItem(BK_ON, v ? '1' : '0'); }
 function backupRev(){ return parseInt(localStorage.getItem(BK_REV) || '0', 10) || 0; }
+function backupLocalAt(){ return parseInt(localStorage.getItem(BK_LOCAL_AT) || '0', 10) || 0; }
 
-/* Une dos partes SIN perder tomas. Las tomas se acumulan (unión por `ts`); los
-   campos sueltos (en qué escena vas) sí se quedan con el más reciente, porque
-   ahí no hay nada que perder. */
-function mergeParte(local, remoto){
+/* Une dos partes SIN perder tomas.
+   - Tomas: SIEMPRE se juntan (unión por `ts`, que es único). Nadie pierde nada.
+   - Campos sueltos (en qué escena vas, notas, producción): gana el más reciente.
+     Ahí no hay nada que acumular, y sin esto un equipo recién abierto pisaría
+     con sus valores por defecto lo que traía del servidor. */
+function mergeParte(local, remoto, localAt, remotoAt){
   if(!remoto) return local;
-  const out = Object.assign({}, remoto, local);   // base: campos del más reciente abajo
+  const out = (remotoAt > localAt)
+    ? Object.assign({}, local, remoto)     // el servidor es más nuevo
+    : Object.assign({}, remoto, local);    // lo de aquí es más nuevo
   const porTs = new Map();
   (remoto.log || []).forEach(t => { if(t && t.ts != null) porTs.set(String(t.ts), t); });
   (local.log  || []).forEach(t => { if(t && t.ts != null) porTs.set(String(t.ts), t); });
   out.log = [...porTs.values()].sort((a,b) => (a.ts||0) - (b.ts||0));
   return out;
+}
+
+/* Vuelca un parte fusionado al estado y repinta. */
+function applyParte(p){
+  _bkApplying = true;
+  Object.keys(p).forEach(k => { state[k] = p[k]; });
+  localStorage.setItem('claquetaState', JSON.stringify(state));
+  _bkApplying = false;
+  if(typeof renderEdit === 'function') renderEdit();
+  if(typeof renderLog === 'function') renderLog();
+}
+
+/* BAJAR: trae el parte de la cuenta y lo fusiona aquí. No sube nada.
+   Va aparte de backupSync a propósito: al entrar en un equipo nuevo hay que
+   descargar ANTES de que ese equipo tenga nada que subir. */
+async function backupPull(){
+  if(!backupOn() || !navigator.onLine) return false;
+  const a = (typeof authGet === 'function') ? authGet() : null;
+  if(!a || !a.token) return false;
+  try{
+    const r = await fetch(API_BASE + '/api/backup', {headers:{'Authorization':'Bearer ' + a.token}});
+    if(!r.ok) return false;
+    const sv = await r.json();
+    if(!sv || !sv.data) return false;
+    let remoto = null;
+    try{ remoto = JSON.parse(sv.data); }catch(e){ return false; }
+    applyParte(mergeParte(collectParte(), remoto, backupLocalAt(), sv.updated_at || 0));
+    localStorage.setItem(BK_REV, String(sv.rev || 0));
+    return true;
+  }catch(e){ return false; }
 }
 
 /* Lo que se respalda: TODO el parte (esto sí incluye producción y notas). */
@@ -3745,7 +3794,8 @@ function collectParte(){
 }
 
 function backupTouch(){
-  if(!backupOn()) return;
+  if(!backupOn() || _bkApplying) return;   // aplicando lo del servidor: no es cambio nuestro
+  localStorage.setItem(BK_LOCAL_AT, String(Date.now()));
   clearTimeout(_bkTimer);
   _bkTimer = setTimeout(backupSync, 5000);
 }
@@ -3763,7 +3813,7 @@ async function backupSync(){
       const sv = await g.json();
       let remoto = null;
       try{ remoto = sv.data ? JSON.parse(sv.data) : null; }catch(e){ remoto = null; }
-      const fusion = mergeParte(collectParte(), remoto);
+      const fusion = mergeParte(collectParte(), remoto, backupLocalAt(), sv.updated_at || 0);
       const r = await fetch(API_BASE + '/api/backup', {
         method:'PUT',
         headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + a.token},
@@ -3776,9 +3826,7 @@ async function backupSync(){
       localStorage.setItem(BK_AT, String(d.updated_at || Date.now()));
       // Traernos lo fusionado: si el otro dispositivo tenía tomas, ahora son nuestras.
       if(JSON.stringify(fusion.log || []) !== JSON.stringify(state.log || [])){
-        state.log = fusion.log;
-        localStorage.setItem('claquetaState', JSON.stringify(state));
-        if(typeof renderLog === 'function') renderLog();
+        applyParte({ log: fusion.log });
       }
       return;
     }
@@ -3788,8 +3836,8 @@ async function backupSync(){
 
 function syncInit(){
   _syncSnapshot = JSON.stringify(collectSettings());
-  if(typeof authValid === 'function' && authValid()){ syncPull(); backupSync(); }
-  window.addEventListener('online', ()=>{ syncPull(); backupSync(); });
+  if(typeof authValid === 'function' && authValid()) syncLogin();
+  window.addEventListener('online', syncLogin);
   setInterval(()=>{ if(typeof authValid === 'function' && authValid()) syncPull(); }, 30*60*1000);
   // Al irte de la app (cerrarla, cambiar de app): última subida. Es cuando más
   // falta hace y es el momento en que iOS congela la página.
@@ -5746,8 +5794,26 @@ document.getElementById('btn-reset').addEventListener('click', resetSession);
    Al subir un cambio: incrementar APP_VERSION y añadir su entrada ARRIBA. El
    index.html se sirve red-primero, así que al conectarse el usuario baja la
    última versión; si es más nueva que la que vio, se le muestran las novedades. */
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.1.0";
 const CHANGELOG = [
+  { v:"1.1.0", d:"2026-07-15", items:{
+    es:[
+      "Cuentas: ahora se entra con usuario y contraseña. Una vez dentro, la app sigue funcionando sin conexión",
+      "Tus ajustes te siguen: el kit de ópticas y tus preferencias se guardan en tu cuenta y aparecen en cualquier dispositivo",
+      "Respaldo del parte (opcional, en Tu cuenta): recupera tus tomas al entrar en otro equipo. Si ruedas en dos dispositivos, las tomas se juntan sin perderse",
+      "Puedes cambiar tu contraseña desde Tu cuenta",
+      "Dirección propia: qrclapper.cinemafilmak.com",
+      "Arreglado: la claqueta ya no se quedaba muda en la cuenta atrás las primeras veces",
+    ],
+    en:[
+      "Accounts: sign in with a username and password. Once inside, the app keeps working offline",
+      "Your settings follow you: your lens kit and preferences are saved to your account and show up on any device",
+      "Report backup (optional, under Your account): get your takes back when you sign in on another device. If you shoot on two devices, takes are merged, never lost",
+      "You can change your password from Your account",
+      "Own address: qrclapper.cinemafilmak.com",
+      "Fixed: the clap no longer stayed silent during the first countdowns",
+    ],
+  }},
   { v:"1.0.2", d:"2026-07-07", items:{
     es:["Importar / Restaurar sesión desde un archivo JSON o pegando el texto (copia de seguridad o cambiar de dispositivo)"],
     en:["Import / Restore a session from a JSON file or by pasting the text (backup or switch devices)"],
