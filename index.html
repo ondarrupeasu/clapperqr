@@ -551,6 +551,8 @@
         <div id="acct-enc-row" style="margin-top:10px; display:none;">
           <button id="acct-enc-btn" style="width:100%; background:transparent; border:1px solid #2c2d30;
             color:#f3f1ea; border-radius:8px; padding:10px; font-size:13px; cursor:pointer;">🔒 Cifrar el respaldo</button>
+          <button id="acct-seekey" style="width:100%; background:transparent; border:1px solid #2c2d30;
+            color:#9a9a96; border-radius:8px; padding:9px; font-size:12px; cursor:pointer; margin-top:6px; display:none;">Ver mi clave de recuperación</button>
           <div id="acct-enc-note" style="color:#9a9a96; font-size:11px; margin-top:6px; line-height:1.45;"></div>
         </div>
       </div>
@@ -589,6 +591,18 @@
       A cambio, la seguridad es tuya. Si pierdes <b style="color:#f3f1ea;">la contraseña Y la
       clave de recuperación</b>, tus datos cifrados <b style="color:#ff4d2e;">no se recuperan</b>
       — ni tú, ni el administrador, ni nadie. Es imposible, no difícil.
+    </div>
+    <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+      <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; color:#f3f1ea; font-size:13px;
+              border:1px solid #2c2d30; border-radius:10px; padding:10px;">
+        <input type="radio" name="enc-cust" value="no" checked style="accent-color:#ff4d2e; margin-top:2px;">
+        <span><b>Privacidad máxima.</b> Nadie puede recuperar tus datos si pierdes las dos claves. Ni el administrador.</span>
+      </label>
+      <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; color:#f3f1ea; font-size:13px;
+              border:1px solid #2c2d30; border-radius:10px; padding:10px;">
+        <input type="radio" name="enc-cust" value="si" style="accent-color:#ff4d2e; margin-top:2px;">
+        <span><b>Respaldo del administrador.</b> El administrador guarda una copia de tu clave y <b style="color:#f3f1ea;">podrá acceder a tus datos</b> si lo necesitas. Útil en clase.</span>
+      </label>
     </div>
     <label style="display:flex; align-items:flex-start; gap:8px; margin-top:12px; cursor:pointer; color:#f3f1ea; font-size:13px;">
       <input id="enc-understand" type="checkbox" style="width:18px; height:18px; accent-color:#ff4d2e; flex:0 0 auto; margin-top:1px;">
@@ -884,20 +898,41 @@ function acctRenderEnc(){
   row.style.display = '';
   const encOn = localStorage.getItem('qr_enc_on') === '1';
   const tieneLlave = !!cryptoDEK();
+  const seekey = document.getElementById('acct-seekey');
+  seekey.style.display = 'none';
   if(!encOn){
     btn.textContent = '🔒 Cifrar el respaldo';
     btn.dataset.action = 'activar';
+    btn.style.opacity = '1';
     note.textContent = 'Que ni el administrador pueda leer tus partes. Recibirás una clave de recuperación.';
   } else if(tieneLlave){
     btn.textContent = '🔒 Cifrado activo';
     btn.dataset.action = '';
     btn.style.opacity = '.6';
+    seekey.style.display = '';                 // con la llave: puede re-ver su clave
     note.textContent = 'Tus partes se cifran en este dispositivo antes de subir.';
   } else {
     btn.textContent = '🔑 Recuperar datos cifrados';
     btn.dataset.action = 'recuperar';
+    btn.style.opacity = '1';
     note.textContent = 'Este dispositivo no tiene la llave (¿te restablecieron la contraseña?). Recupérala con tu clave.';
   }
+}
+
+/* Re-ver la clave de recuperación (estando dentro, con la DEK). No involucra al
+   admin: la clave está cifrada con la DEK en el servidor, y este dispositivo la
+   tiene. Devuelve la MISMA clave, no una nueva. */
+async function verClaveRecuperacion(){
+  const dek = cryptoDEK(); if(!dek) return;
+  const a = authGet(); if(!a || !a.token) return;
+  if(!navigator.onLine){ showToast('Necesitas conexión'); return; }
+  try{
+    const r = await fetch(API_BASE + '/api/crypto', { headers:{'Authorization':'Bearer ' + a.token} });
+    const c = await r.json();
+    if(!c || !c.rec_dek){ showToast('No disponible'); return; }
+    const clave = await descifraBlob(dek, c.rec_dek);
+    reckeyShow(clave);
+  }catch(e){ showToast('No se pudo mostrar'); }
 }
 
 /* ---- Activar cifrado ---- */
@@ -919,16 +954,19 @@ async function encGo(){
   const a = authGet(); if(!a || !a.token) return;
   const btn = document.getElementById('enc-go'); btn.disabled = true; btn.textContent = 'Activando…';
   try{
-    // La contraseña debe ser la de verdad: la validamos re-vinculándola después,
-    // pero primero comprobamos que es correcta cambiando... no. La comprobamos
-    // pidiendo un heartbeat? El token ya vale. La contraseña la usamos tal cual
-    // para envolver; si es errónea, el propio usuario no podrá abrir luego. Para
-    // evitarlo, verificamos contra el servidor con /api/change-password no. Mejor:
-    // confiamos en que es su contraseña (la acaba de escribir en su móvil).
+    // Confiamos en que la contraseña es la suya (la acaba de escribir en su móvil).
     const act = await activarCifrado(pass);
+    // rec_dek: la clave de recuperación cifrada con la DEK, para poder RE-VERLA
+    // luego desde cualquier dispositivo con sesión (el servidor no la lee).
+    const rec_dek = await cifraBlob(act.rawDEK, act.claveRecuperacion);
+    const cuerpo = Object.assign({ rec_dek }, act.servidor);
+    // Custodia: si la eligió, mandamos la clave en claro (va por TLS) para que
+    // el admin pueda recuperarla. Si no, no se manda y queda privacidad máxima.
+    const custodia = document.querySelector('input[name="enc-cust"]:checked').value === 'si';
+    if(custodia) cuerpo.custodia_plain = act.claveRecuperacion;
     const r = await fetch(API_BASE + '/api/crypto', {
       method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + a.token},
-      body: JSON.stringify(act.servidor)
+      body: JSON.stringify(cuerpo)
     });
     if(!r.ok){ msg.style.color='#ff4d2e'; msg.textContent='No se pudo activar. Inténtalo otra vez.'; return; }
     localStorage.setItem('qr_dek', act.rawDEK);
@@ -1063,6 +1101,7 @@ function authInit(){
   });
   document.getElementById('enc-cancel').addEventListener('click', encHide);
   document.getElementById('enc-go').addEventListener('click', encGo);
+  document.getElementById('acct-seekey').addEventListener('click', verClaveRecuperacion);
   document.getElementById('reckey-done').addEventListener('click', ()=>{
     document.getElementById('reckey-overlay').style.display = 'none'; acctRenderBackup();
   });
