@@ -145,6 +145,10 @@
   .log-table th{ vertical-align:top; }
   .log-fixed-wrap .log-table td{ background:#0b0b0c; }
   .log-fixed-wrap .log-table tr.row-buena td{ color:var(--accent-good); background:#0b0b0c; }
+  /* Descuadre entre la ficha de la script y la del auxiliar. Ámbar: ni coral
+     (que es acción) ni verde. Es un "míralo", no un error. */
+  .log-table tr.row-choque td:first-child{ box-shadow: inset 3px 0 0 #f5c300; }
+  .log-choque{ color:#f5c300; margin-right:4px; font-size:11px; }
   .log-fixed-wrap .log-table tr.row-mala  td{ color:var(--accent-bad);  background:#0b0b0c; }
   .log-scroll-wrap .log-table tr.row-buena td{ color:var(--accent-good); }
   .log-scroll-wrap .log-table tr.row-mala  td{ color:var(--accent-bad); }
@@ -3696,6 +3700,15 @@ function loadState(){
   s.log = Array.isArray(s.log) ? s.log.slice() : [];
   return s;
 }
+/* `var` a propósito, NO `let`: esto se iza y arranca en undefined.
+   saveState() se llama al cargar (para fijar la fecha de sesión) y llama a
+   syncTouch/backupTouch, que están más abajo. Las FUNCIONES se izan, pero las
+   variables `let` de sus módulos no: tocarlas antes de tiempo revienta el
+   script entero y la app no arranca (le pasaba a cualquier usuario nuevo).
+   Un `typeof x === 'function'` no protege de esto: la función existe, lo que
+   no existe todavía es lo que hay dentro. */
+var _syncReady = false;
+
 function saveState(){
   localStorage.setItem('claquetaState', JSON.stringify(state));
   if(typeof syncTouch === 'function') syncTouch();
@@ -3776,6 +3789,7 @@ function applySettings(data){
 /* Detecta cambios en los ajustes comparando con la última foto conocida. Así no
    hay que acordarse de avisar desde cada sitio que toca un ajuste. */
 function syncTouch(){
+  if(!_syncReady) return;      // aún cargando: sus variables no existen todavía
   if(_syncApplying) return;
   const now = JSON.stringify(collectSettings());
   if(_syncSnapshot === null){ _syncSnapshot = now; return; }
@@ -3874,20 +3888,64 @@ function backupSetOn(v){ localStorage.setItem(BK_ON, v ? '1' : '0'); }
 function backupRev(){ return parseInt(localStorage.getItem(BK_REV) || '0', 10) || 0; }
 function backupLocalAt(){ return parseInt(localStorage.getItem(BK_LOCAL_AT) || '0', 10) || 0; }
 
+/* ---- Fusión de dos fichas -------------------------------------------------
+   Una toma NO se identifica por cuándo se creó, sino por CUÁL ES: escena +
+   plano + toma + cámara + tarjeta. Si se fusionara por `ts`, la script y el
+   auxiliar crearían cada uno su entrada de la misma toma física y saldría
+   duplicada.
+   Y dentro de cada toma se junta CAMPO A CAMPO, no se sustituye: cada rol es
+   dueño de lo suyo (el auxiliar no escribe buena/mala, la script no escribe el
+   clap ni la óptica), así que lo normal es que no se pisen jamás. */
+function claveToma(e){
+  return [e.cam, e.card, e.sc, e.sh, e.tk].join('|');
+}
+const _vacioTk = v => v === undefined || v === null || v === '';
+
+/* Junta los dos registros de la MISMA toma. */
+function fusionaToma(a, b){
+  const out = {};
+  const choques = [];
+  const claves = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  claves.forEach(k => {
+    if(k === '_choques') return;
+    const va = a ? a[k] : undefined, vb = b ? b[k] : undefined;
+    if(_vacioTk(va)){ out[k] = vb; return; }          // el que no escribe…
+    if(_vacioTk(vb)){ out[k] = va; return; }          // …no pisa
+    if(JSON.stringify(va) === JSON.stringify(vb)){ out[k] = va; return; }
+    if(k === 'ts'){ out[k] = (va < vb) ? va : vb; return; }   // misma toma: la hora más temprana
+    // Los DOS escribieron y NO coinciden. No adivinamos: nos quedamos con uno
+    // (criterio estable para que los dos dispositivos lleguen al mismo
+    // resultado) y lo MARCAMOS para que lo resuelva quien sabe.
+    const ta = (a && a.ts) || '', tb = (b && b.ts) || '';
+    out[k] = (ta === tb) ? (JSON.stringify(va) > JSON.stringify(vb) ? va : vb)
+                         : (ta > tb ? va : vb);
+    choques.push(k);
+  });
+  const todos = [...new Set([].concat(
+    (a && a._choques) || [], (b && b._choques) || [], choques))];
+  if(todos.length) out._choques = todos;
+  return out;
+}
+
 /* Une dos partes SIN perder tomas.
-   - Tomas: SIEMPRE se juntan (unión por `ts`, que es único). Nadie pierde nada.
-   - Campos sueltos (en qué escena vas, notas, producción): gana el más reciente.
-     Ahí no hay nada que acumular, y sin esto un equipo recién abierto pisaría
-     con sus valores por defecto lo que traía del servidor. */
+   - Tomas: SIEMPRE se juntan (por escena+plano+toma+cámara). Nadie pierde nada.
+   - Campos sueltos (en qué escena vas, producción): gana el más reciente. Ahí no
+     hay nada que acumular, y sin esto un equipo recién abierto pisaría con sus
+     valores por defecto lo que traía del servidor. */
 function mergeParte(local, remoto, localAt, remotoAt){
   if(!remoto) return local;
   const out = (remotoAt > localAt)
     ? Object.assign({}, local, remoto)     // el servidor es más nuevo
     : Object.assign({}, remoto, local);    // lo de aquí es más nuevo
-  const porTs = new Map();
-  (remoto.log || []).forEach(t => { if(t && t.ts != null) porTs.set(String(t.ts), t); });
-  (local.log  || []).forEach(t => { if(t && t.ts != null) porTs.set(String(t.ts), t); });
-  out.log = [...porTs.values()].sort((a,b) => (a.ts||0) - (b.ts||0));
+  const porClave = new Map();
+  const meter = (t)=>{
+    if(!t) return;
+    const k = claveToma(t);
+    porClave.set(k, porClave.has(k) ? fusionaToma(porClave.get(k), t) : t);
+  };
+  (remoto.log || []).forEach(meter);
+  (local.log  || []).forEach(meter);
+  out.log = [...porClave.values()].sort((a,b) => String(a.ts||'').localeCompare(String(b.ts||'')));
   return out;
 }
 
@@ -3938,6 +3996,7 @@ function collectParte(){
 }
 
 function backupTouch(){
+  if(!_syncReady) return;      // aún cargando: sus variables no existen todavía
   if(!backupOn() || _bkApplying) return;   // aplicando lo del servidor: no es cambio nuestro
   // La marca de tiempo sí se actualiza con cualquier cambio: es local y es lo
   // que decide quién gana en los campos sueltos al fusionar.
@@ -3992,6 +4051,7 @@ function syncInit(){
   // Sin esto, la PRIMERA toma del día no dispararía subida (se gastaría en
   // inicializar la foto) y se quedaría esperando a la segunda.
   _bkLogSnapshot = JSON.stringify(state.log || []);
+  _syncReady = true;           // fotos hechas: ya se puede sincronizar
   if(typeof authValid === 'function' && authValid()) syncLogin();
   window.addEventListener('online', syncLogin);
   setInterval(()=>{ if(typeof authValid === 'function' && authValid()) syncPull(); }, 30*60*1000);
@@ -4947,19 +5007,23 @@ function confirmRoll(clapPayload){
   const cams = getCams();
   const nowIso = new Date().toISOString();
   const clapTs = clapPayload ? clapPayload.ts : '';
+  // INT/EXT y DÍA/NOCHE son de la script y el auxiliar ni los ve: si los
+  // escribiera, mandaría sus valores por defecto y al fusionar le pisaría los
+  // buenos. Lo que no escribes, no lo puedes pisar.
+  const _esAux = (typeof roleGet === 'function') && roleGet() === 'aux';
+  const _escena = _esAux ? {} : { int: state.int, dn: state.dn };
   cams.forEach(c => {
-    upsertLogEntry({
+    upsertLogEntry(Object.assign({
       ts: nowIso,
       clap_ts: clapTs,
       sc: state.sc, sh: state.sh, tk: state.tk,
       cam: c, card: state.card,
       clip: formatClipName(c),
-      int: state.int, dn: state.dn,
       fps: state.fps, mm: state.mm, lensName: state.lensName, lensType: state.lensType, squeeze: state.squeeze,
       sht: state.sht, shtDeg: state.shtDeg, shtMode: state.shtMode,
       iso: state.iso, ap: state.ap, apMode: state.apMode, wb: state.wb,
       techNoteSc: state.techNoteSc || '', techNoteSh: state.techNoteSh || ''
-    });
+    }, _escena));
   });
 
   // Avanzar el contador de clip de CADA cámara (cada clap = un clip grabado).
@@ -5416,7 +5480,13 @@ function renderLog(){
   entries.forEach(({ e, i }) => {
     const hora = e.clap_ts ? e.clap_ts.slice(11,19) : (e.ts ? e.ts.slice(11,19) : '—');
     const good = e.toma_buena === 'buena' ? '✓' : e.toma_buena === 'mala' ? '✗' : '—';
-    const cls  = e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '';
+    // Descuadre entre las dos fichas: la script y el auxiliar apuntaron cosas
+    // distintas en el mismo campo. No lo resolvemos por nuestra cuenta: se
+    // señala y lo arregla quien sabe, tocando la fila.
+    const choque = Array.isArray(e._choques) && e._choques.length
+      ? `<span class="log-choque" title="No cuadra con la otra ficha: ${e._choques.join(', ')}">⚠</span>` : '';
+    const cls  = (e.toma_buena === 'buena' ? 'row-buena' : e.toma_buena === 'mala' ? 'row-mala' : '')
+      + (choque ? ' row-choque' : '');
     const fps  = e.fps != null ? (Number.isInteger(e.fps) ? e.fps : parseFloat(e.fps).toFixed(3).replace(/0+$/,'').replace(/\.$/,'')) : '—';
     const mm   = e.lensName ? lensDisplay(e.lensName, e.mm) : (e.mm != null ? formatLens(e.mm, e.lensType || 'sph', e.squeeze) : '—');
     const sht  = (e.shtMode === 'deg' && e.shtDeg != null) ? e.shtDeg + '°'
@@ -5428,7 +5498,7 @@ function renderLog(){
     const clip = e.clip ? String(e.clip).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
 
     rowsFixed.push(`<tr class="${cls}" data-logidx="${i}">
-      <td>${hora}</td>
+      <td>${choque}${hora}</td>
       <td>${e.sc ?? '—'}</td>
       <td>${e.sh ?? '—'}</td>
       <td>${e.tk ?? '—'}</td>
@@ -5555,6 +5625,7 @@ function saveLogEdit(){
   e.ap = numOr($('le-ap').value, e.ap);
   e.wb = intOr($('le-wb').value, e.wb);
   e.notes = $('le-notes').value;
+  delete e._choques;      // lo acaba de resolver un humano: fuera el aviso
   e.techNoteSc = $('le-tech-sc').value;
   e.techNoteSh = $('le-tech-sh').value;
   e.toma_buena = leGood;
