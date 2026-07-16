@@ -7,7 +7,7 @@
    - Resto de recursos: cache primero, red de reserva.
    Para forzar que todos actualicen tras un cambio, sube el número de CACHE. */
 
-const CACHE = 'qrclapper-v32';
+const CACHE = 'qrclapper-v33';
 const SHELL = [
   './',
   'index.html',
@@ -17,6 +17,12 @@ const SHELL = [
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
 ];
+
+// version.json NUNCA se cachea: es el chivato de "hay versión nueva". Sin esto,
+// el SW lo serviría cacheado y el aviso no saltaría hasta recargar.
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'skipWaiting') self.skipWaiting();
+});
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -42,6 +48,9 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) {
     return;
   }
+  // version.json: el chivato de versión. Que lo gestione el navegador (red
+  // directa, sin caché del SW); si no, avisaría tarde o nunca.
+  if (new URL(req.url).pathname.endsWith('version.json')) return;
 
   const url = new URL(req.url);
   const isHTML = req.mode === 'navigate'

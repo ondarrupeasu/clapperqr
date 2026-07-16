@@ -576,6 +576,9 @@
 
     <button id="acct-close" style="width:100%; background:transparent; border:none; color:#9a9a96;
       padding:12px; font-size:13px; cursor:pointer; margin-top:10px;">Cerrar</button>
+    <div style="text-align:center; margin-top:6px;">
+      <span id="acct-version" style="color:#6a6a67; font-size:11px; cursor:pointer;"></span>
+    </div>
   </div>
 </div>
 
@@ -841,6 +844,8 @@ async function authHeartbeat(){
 function acctShow(){
   const a = authGet(); if(!a) return;
   document.getElementById('acct-name').textContent = a.username || '';
+  const ver = document.getElementById('acct-version');
+  if(ver) ver.textContent = 'QRClappeR v' + APP_VERSION + ' · Novedades';
   acctRenderRole();
   acctRenderBackup();
   acctMode('menu');
@@ -1102,6 +1107,11 @@ function authInit(){
   document.getElementById('enc-cancel').addEventListener('click', encHide);
   document.getElementById('enc-go').addEventListener('click', encGo);
   document.getElementById('acct-seekey').addEventListener('click', verClaveRecuperacion);
+  const ver = document.getElementById('acct-version');
+  if(ver) ver.addEventListener('click', ()=>{
+    acctHide();
+    if(typeof renderWhatsNew === 'function') renderWhatsNew(CHANGELOG.slice(0, 4));
+  });
   document.getElementById('reckey-done').addEventListener('click', ()=>{
     document.getElementById('reckey-overlay').style.display = 'none'; acctRenderBackup();
   });
@@ -1138,6 +1148,16 @@ else authInit();
 
 
 <!-- ================= HEADER COMPARTIDO (fijo, siempre visible) ================= -->
+<!-- Aviso de versión nueva: barra discreta arriba del todo. Monocromo + coral. -->
+<div id="update-bar" style="display:none; position:fixed; top:0; left:0; right:0; z-index:100004;
+     background:#17181a; border-bottom:1px solid #ff4d2e; color:#f3f1ea;
+     padding:calc(env(safe-area-inset-top) + 8px) 14px 8px; font-size:13px;
+     display:none; align-items:center; justify-content:space-between; gap:10px;">
+  <span>Hay una versión nueva de QRClappeR.</span>
+  <button id="update-btn" style="flex:0 0 auto; background:#ff4d2e; color:#fff; border:none;
+    border-radius:8px; padding:7px 14px; font-weight:700; font-size:13px; cursor:pointer;">Actualizar</button>
+</div>
+
 <div id="shared-header">
   <div class="edit-inner" style="padding-bottom:0;">
     <div class="topbar">
@@ -6477,6 +6497,10 @@ document.getElementById('btn-reset').addEventListener('click', resetSession);
    index.html se sirve red-primero, así que al conectarse el usuario baja la
    última versión; si es más nueva que la que vio, se le muestran las novedades. */
 const APP_VERSION = "1.1.0";
+// BUILD cambia en CADA despliegue (igual que el CACHE del sw). El aviso de
+// "versión nueva" compara esto con version.json; APP_VERSION es lo que ve el
+// usuario y solo sube cuando hay novedades que contar.
+const BUILD = "qrclapper-v33";
 const CHANGELOG = [
   { v:"1.1.0", d:"2026-07-15", items:{
     es:[
@@ -6673,6 +6697,47 @@ function siguienteToma(){
   }, 1500);
 }
 
+/* ================= AVISO DE VERSIÓN NUEVA ==============================
+   GitHub Pages es hosting estático: no hay servidor donde poner /version. Y el
+   service worker hace skipWaiting+claim, así que NO hay estado "waiting" que
+   detectar con el patrón canónico. Mecanismo que sí encaja: comparar un número.
+   Publicamos version.json y lo pedimos SIN caché (el CDN de Pages cachea unos
+   minutos, por eso cache:'no-store' + query única). Si el build no coincide con
+   el que se cargó, hay versión nueva. Cero comparar a mano. */
+let _updateAvisado = false;
+async function comprobarActualizacion(){
+  if(_updateAvisado || !navigator.onLine) return;
+  try{
+    const r = await fetch('version.json?t=' + Date.now(), { cache:'no-store' });
+    if(!r.ok) return;
+    const v = await r.json();
+    if(v && v.build && v.build !== BUILD){
+      _updateAvisado = true;
+      const bar = document.getElementById('update-bar');
+      if(bar) bar.style.display = 'flex';
+    }
+  }catch(e){ /* sin red o CDN raro: se reintenta al volver */ }
+}
+async function aplicarActualizacion(){
+  const btn = document.getElementById('update-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Actualizando…'; }
+  try{
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg){ await reg.update(); if(reg.waiting) reg.waiting.postMessage({type:'skipWaiting'}); }
+    }
+  }catch(e){}
+  location.reload();
+}
+function updateInit(){
+  const btn = document.getElementById('update-btn');
+  if(btn) btn.addEventListener('click', aplicarActualizacion);
+  comprobarActualizacion();                                   // al abrir
+  document.addEventListener('visibilitychange', ()=>{         // al volver de segundo plano
+    if(document.visibilityState === 'visible') comprobarActualizacion();
+  });
+}
+
 function init(){
   renderEdit();
   roleApply();
@@ -6684,6 +6749,7 @@ function init(){
   if(sub === 'qr' && !state.lastClapPayload) sub = 'data';
   setSub(sub);
   showWhatsNew();
+  updateInit();
 }
 
 init();
