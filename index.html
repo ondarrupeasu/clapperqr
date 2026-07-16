@@ -3932,11 +3932,23 @@ function fusionaToma(a, b){
    - Campos sueltos (en qué escena vas, producción): gana el más reciente. Ahí no
      hay nada que acumular, y sin esto un equipo recién abierto pisaría con sus
      valores por defecto lo que traía del servidor. */
+// Campos de sesión (no por toma) que los DOS roles pueden tener y que no deben
+// perderse: producción, director, DP, notas de sesión. Se fusionan campo a
+// campo (lo vacío no pisa a lo escrito), no en bloque, para que la producción
+// vacía del auxiliar no machaque la que rellenó la script.
+const CAMPOS_SESION = ['pr','dir','dp','sessionNotes'];
+
 function mergeParte(local, remoto, localAt, remotoAt){
   if(!remoto) return local;
   const out = (remotoAt > localAt)
     ? Object.assign({}, local, remoto)     // el servidor es más nuevo
     : Object.assign({}, remoto, local);    // lo de aquí es más nuevo
+  // Rescatar los campos de sesión: si el que "ganó" el bloque los tenía vacíos,
+  // recuperar el valor escrito del otro. Si los dos escribieron distinto, se
+  // queda el del bloque ganador (el más reciente).
+  CAMPOS_SESION.forEach(k => {
+    if(_vacioTk(out[k])) out[k] = _vacioTk(local[k]) ? remoto[k] : local[k];
+  });
   const porClave = new Map();
   const meter = (t)=>{
     if(!t) return;
@@ -6185,6 +6197,14 @@ function roleApply(){
   // La script no claca: su botón registra la toma y avanza.
   const btn = document.getElementById('btn-publicar');
   if(btn) btn.textContent = (r === 'script') ? 'SIGUIENTE' : t('publicar');
+  // La producción la lleva la SCRIPT (lo supervisa todo). El auxiliar la ve
+  // como contexto pero no la edita: así no la rellena a medias y, sobre todo,
+  // su copia vacía no compite con la de ella al fusionar.
+  const soloScript = (r === 'aux');
+  ['f-pr','f-dir','f-dp','f-session-notes'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.readOnly = soloScript;
+  });
 }
 
 /* Cada nota técnica se vacía cuando deja de valer, para que un filtro que ya no
