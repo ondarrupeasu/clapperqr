@@ -4163,7 +4163,7 @@ const I18N = {
     reset_confirm:'¿Reiniciar la sesión? Se perderá el registro de todas las tomas.',
     produccion:'Producción', director:'Director/a', dp:'Dir. de fotografía',
     datos_produccion:'Datos de producción', novedades:'Novedades', entendido:'Entendido',
-    qr_nivel:'Nivel del QR', qr_basico:'Básico', qr_completo:'Completo',
+    copia_completa:'Copia completa (clonar dispositivo)', restaurar_full:'Restaurar copia completa: se REEMPLAZARÁ todo lo que hay ahora en este dispositivo (ópticas, ajustes y el parte con {n} tomas). ¿Seguir?', restaurar_full_ok:'Dispositivo restaurado',
     qr_hint_basico:'Básico: escena, plano, toma, cámara, tarjeta, clip, hora del clap y toma buena.',
     qr_hint_extra:'Completo añade: Int/Ext, Día/Noche, fps, óptica, obturador, ISO, diafragma y WB.',
   },
@@ -4193,7 +4193,7 @@ const I18N = {
     reset_confirm:'Reset the session? All recorded takes will be lost.',
     produccion:'Production', director:'Director', dp:'Cinematographer',
     datos_produccion:'Production info', novedades:'What\'s new', entendido:'Got it',
-    qr_nivel:'QR level', qr_basico:'Basic', qr_completo:'Full',
+    copia_completa:'Full backup (clone device)', restaurar_full:'Restore full backup: everything on THIS device will be REPLACED (lenses, settings and the report with {n} takes). Continue?', restaurar_full_ok:'Device restored',
     qr_hint_basico:'Basic: scene, shot, take, camera, card, clip, clap time and good take.',
     qr_hint_extra:'Full adds: Int/Ext, Day/Night, fps, lens, shutter, ISO, aperture and WB.',
   },
@@ -4223,7 +4223,7 @@ const I18N = {
     reset_confirm:'Saioa berrabiarazi? Erregistratutako toma guztiak galduko dira.',
     produccion:'Ekoizpena', director:'Zuzendaria', dp:'Argazki zuzendaria',
     datos_produccion:'Ekoizpenaren datuak', novedades:'Nobedadeak', entendido:'Ados',
-    qr_nivel:'QR maila', qr_basico:'Oinarrizkoa', qr_completo:'Osoa',
+    copia_completa:'Kopia osoa (gailua klonatu)', restaurar_full:'Kopia osoa berreskuratu: gailu HONETAKO guztia ORDEZTUKO da (optikak, ezarpenak eta {n} tomako partea). Jarraitu?', restaurar_full_ok:'Gailua berreskuratuta',
     qr_hint_basico:'Oinarrizkoa: eszena, plano, toma, kamera, txartela, klipa, klap ordua eta toma ona.',
     qr_hint_extra:'Osoak gehitzen du: Barn/Kanp, Eguna/Gaua, fps, optika, obturadorea, ISO, diafragma eta ZB.',
   },
@@ -5684,9 +5684,41 @@ function showToast(msg){
   setTimeout(()=> t.classList.remove('show'), 2000);
 }
 
+/* Copia completa: TODO el estado, para clonar el dispositivo en otro (AirDrop
+   cuando no hay cobertura, o rescatar un móvil muerto). A diferencia del "log"
+   (producción + tomas), esta lleva también el kit de ópticas, los nombres de
+   cámara, los contadores de clip, dónde ibas y todos los ajustes. Al restaurar,
+   el otro equipo queda idéntico. */
+function buildFullBackup(){
+  const st = JSON.parse(JSON.stringify(state));
+  delete st.lastPayload; delete st.lastClapPayload;   // se regeneran solos
+  return JSON.stringify({
+    app: 'QRClappeR', type: 'full', version: 2,
+    savedAt: new Date().toISOString(),
+    state: st,
+    btLatency: parseInt(localStorage.getItem('claptag_bt_latency_ms') || '0', 10) || 0,
+  }, null, 2);
+}
+
+/* Restaura una copia completa: deja este dispositivo EXACTAMENTE como el otro.
+   Reutiliza loadState() (vía localStorage) para heredar toda su normalización
+   —migraciones, objetos anidados, valores por defecto— sin duplicarla. */
+function applyFullBackup(data){
+  localStorage.setItem('claquetaState', JSON.stringify(data.state || {}));
+  const restaurado = loadState();
+  Object.keys(state).forEach(k => delete state[k]);   // misma referencia, contenido nuevo
+  Object.assign(state, restaurado);
+  if(data.btLatency != null) localStorage.setItem('claptag_bt_latency_ms', String(data.btLatency | 0));
+  saveState();
+  renderEdit();
+  if(typeof renderLog === 'function') renderLog();
+  if(typeof renderLensList === 'function') renderLensList();
+}
+
 function makeExportFile(fmt, date){
   if(fmt === 'csv')  return new File([buildCSV()],  `claqueta_${date}.csv`,  {type:'text/csv'});
   if(fmt === 'json') return new File([buildJSON()], `claqueta_${date}.json`, {type:'application/json'});
+  if(fmt === 'full') return new File([buildFullBackup()], `copia_completa_${date}.json`, {type:'application/json'});
   return new File([buildText()], `claqueta_${date}.txt`, {type:'text/plain'});
 }
 async function doExport(fmt){
@@ -5713,7 +5745,11 @@ async function doExport(fmt){
 }
 // El botón de exportar abre un selector de formato (CSV / JSON / Texto / Todos).
 function exportLog(){
-  if(state.log.length === 0){ showToast(t('toast_no_log')); return; }
+  // Se abre si hay ALGO que exportar: tomas, kit de ópticas o producción. La
+  // copia completa vale aunque no haya tomas (llevarte el kit a otro equipo).
+  if(!state.log.length && !(state.lenses || []).length && !state.pr){
+    showToast(t('toast_no_log')); return;
+  }
   const bd = document.getElementById('export-backdrop');
   if(bd) bd.classList.add('show'); else doExport('all');
 }
@@ -5759,6 +5795,17 @@ function _processImportText(text){
   let data;
   try{ data = JSON.parse(text); }
   catch(e){ showToast(t('import_err_format')); return false; }
+  // Copia completa: clona el dispositivo. Reemplaza TODO (no hay modo "añadir":
+  // media clonación no tiene sentido), así que se confirma aquí mismo.
+  if(data && data.type === 'full' && data.state){
+    const nTomas = Array.isArray(data.state.log) ? data.state.log.length : 0;
+    if(confirm(t('restaurar_full').replace('{n}', nTomas))){
+      applyFullBackup(data);
+      showToast(t('restaurar_full_ok'));
+    }
+    _importData = null;
+    return true;
+  }
   if(!data || data.app !== 'ClapperQR' || !Array.isArray(data.tomas)){
     showToast(t('import_err_format')); return false;
   }
@@ -6567,6 +6614,9 @@ document.getElementById('btn-calib-reset').addEventListener('click', ()=>{
       <button class="export-opt" data-fmt="txt">TXT</button>
       <button class="export-opt export-all" data-fmt="all" data-i18n="todos">Los tres</button>
     </div>
+    <!-- Copia completa: para clonar el dispositivo (AirDrop sin cobertura). -->
+    <button class="export-opt export-full" data-fmt="full" style="width:100%; margin-bottom:10px;"
+      data-i18n="copia_completa">Copia completa (clonar dispositivo)</button>
     <button id="export-cancel" class="export-cancel-btn" data-i18n="cancelar">Cancelar</button>
   </div>
 </div>
